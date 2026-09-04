@@ -23,5 +23,3 @@ dist-ssr
 *.sln
 *.sw?
 
-# Claude Code worktree scaffolding
-.claude/worktrees/
