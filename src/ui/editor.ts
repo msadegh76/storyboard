@@ -398,7 +398,16 @@ async function post<T>(what: string, body: unknown): Promise<T> {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  const out = await res.json().catch(() => ({ error: "no answer" }));
+  /* The dev server's plugin always answers in JSON. Anything else —
+     an empty 404, a Vite error page — means the request never reached
+     the plugin: usually a server that has been restarted in place
+     until it lost its middleware. The fix is to start it again, and
+     the message says so rather than leaving the author to guess. */
+  const out = await res.json().catch(() => null);
+  if (!out)
+    throw new Error(
+      `the dev server did not answer (HTTP ${res.status}). Stop it and run pnpm dev again.`,
+    );
   if (!res.ok) throw new Error(out.error || `the server said ${res.status}`);
   return out as T;
 }
@@ -1070,6 +1079,17 @@ function setHead(title: string, canGoBack: boolean) {
   if (status) status.hidden = canGoBack;
 }
 
+/* What to call a card, or a slide by its first card: its title, or
+   its caption, or its first line of text — a photo often has only a
+   caption, and "Slide 5" says nothing. */
+const nameOf = (cards: Promise_[], fallback: string) => {
+  for (const c of cards) {
+    const name = c.title || c.caption || c.text;
+    if (name) return name;
+  }
+  return fallback;
+};
+
 /* Every slide, in order, each wearing the kinds of its cards. Click
    one to go there; drag it — or use the arrows — to put it somewhere
    else. The order is the deck's, so a move is written like any other
@@ -1093,7 +1113,7 @@ function slideList() {
     go.append(
       h("b", "", String(n)),
       kinds,
-      h("span", "ed-row-title", cards[0]?.title || cards[0]?.text || `Slide ${n}`),
+      h("span", "ed-row-title", nameOf(cards, `Slide ${n}`)),
     );
     go.addEventListener("click", () => storyGoToSlide(n));
 
@@ -1325,7 +1345,7 @@ function renderSlide(ps: Promise_[]) {
     const b = h("button", `ed-chip${i === pick ? " on" : ""}`);
     b.type = "button";
     b.title = kindOf(c.type).name;
-    b.append(swatch(kindOf(c.type).kind, true), h("span", "", c.title || c.text || `Card ${i + 1}`));
+    b.append(swatch(kindOf(c.type).kind, true), h("span", "", nameOf([c], `Card ${i + 1}`)));
     b.addEventListener("click", () => {
       pick = i;
       render();
