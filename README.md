@@ -158,8 +158,11 @@ relative to it — `image: "shots/dashboard.png"` loads
 `public/shots/dashboard.png`.
 
 Every deck under [`examples/`](examples) is a working one you can copy.
-[`hello-wall`](examples/hello-wall/deck.config.js) is a tour of every
-kind of card; [`lighthouse-bakery`](examples/lighthouse-bakery/deck.config.js)
+[`onboarding`](examples/onboarding/deck.config.js) is the tour of the
+wall, given on the wall — every feature, one stop each, with a picture
+of the real thing — and it is the deck the project opens on.
+[`hello-wall`](examples/hello-wall/deck.config.js) is a shorter tour of
+every kind of card; [`lighthouse-bakery`](examples/lighthouse-bakery/deck.config.js)
 is a full-length deck, fifteen stops long, about a bakery that does not
 exist — its captures are drawings of screens nobody runs, under
 [`public/demo/`](public/demo).

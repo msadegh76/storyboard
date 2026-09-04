@@ -85,7 +85,7 @@ is verified by hand. Please check:
 
 - [ ] `pnpm build` passes — it typechecks first, so this covers both
 - [ ] The console is clean on a fresh load
-- [ ] Both example decks still present:
+- [ ] The example decks still present: `examples/onboarding`,
       `examples/hello-wall` and `examples/lighthouse-bakery` — point
       `deck.config.js` at each in turn
 - [ ] The walk still works end to end: `→` through every stop, `Home`,

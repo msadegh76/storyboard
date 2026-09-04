@@ -9,7 +9,7 @@ const load = async (src) => {
 };
 
 let fail = 0;
-for (const f of ['../examples/hello-wall/deck.config.js','../examples/lighthouse-bakery/deck.config.js']){
+for (const f of ['../examples/hello-wall/deck.config.js','../examples/lighthouse-bakery/deck.config.js','../examples/onboarding/deck.config.js']){
   const src = readFileSync(new URL(f, import.meta.url), 'utf8');
   const deck = await load(src);
   const {spans} = slideSpans(src);
