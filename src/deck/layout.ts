@@ -24,6 +24,7 @@ import {
   BOARD_BOTTOM,
   boardAspect,
   MAX_ROWS,
+  FLOOR_Y,
 } from "../config.js";
 import { cards } from "../scene/card.js";
 import { STORY } from "./state.js";
@@ -113,8 +114,31 @@ export function placeCards(promises: Promise_[], story: Beat[]) {
   // never narrower than the widest single stop — a stop is not split
   const boardW = clamp(total / rows, widest, BOARD_W);
 
-  // and hang the whole board about the middle of the wall
-  const top = Math.min(ROW_TOP, ((rows - 1) * ROW_PITCH) / 2 + ROW_PITCH / 2);
+  /* How many rows the reading will actually take at that width. The
+     count above chose the width; a stop is never split, so the rows
+     that come out of filling it can be more than it. */
+  let rowsUsed = 1;
+  {
+    let x = -boardW / 2;
+    for (const span of spans) {
+      if (x + span > boardW / 2 && x > -boardW / 2) {
+        rowsUsed++;
+        x = -boardW / 2;
+      }
+      x += span + MIN_GAP;
+    }
+  }
+
+  /* Hang the whole board about the middle of the wall — unless the
+     last row would then be under the floor. The plaster goes up a long
+     way and the floor does not go down, so a long deck starts higher
+     instead: the bottom row is held above the skirting, and the rows
+     above it climb from there. */
+  const lowest = FLOOR_Y + 1.6 + tall / 2 + 1;
+  const top = Math.max(
+    Math.min(ROW_TOP, ((rowsUsed - 1) * ROW_PITCH) / 2 + ROW_PITCH / 2),
+    lowest + (rowsUsed - 1) * ROW_PITCH,
+  );
 
   let x = -boardW / 2, // the left margin of the current row
     row = 0;
@@ -153,7 +177,11 @@ export function placeCards(promises: Promise_[], story: Beat[]) {
   // far it may push a card before it runs out of wall
   const tallest = Math.max(...promises.map(guessHeight), 0);
   bounds.top = top + tallest;
-  bounds.bottom = Math.min(BOARD_BOTTOM, top - row * ROW_PITCH - tallest) - 1;
+  // ...but never through the skirting board, whatever the deck's length
+  bounds.bottom = Math.max(
+    FLOOR_Y + 1.6,
+    Math.min(BOARD_BOTTOM, top - row * ROW_PITCH - tallest) - 1,
+  );
 }
 
 /* How far a card may be pushed before it runs out of wall. The top and
