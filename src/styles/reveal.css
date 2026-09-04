@@ -1,0 +1,309 @@
+/* ------------------------------------------------------------
+   THE REVEAL — an easter egg. Press A and the whole wall shrinks
+   into a chat thread, as though it had just been generated there.
+   Purely cosmetic: the wall knows nothing about this, and this
+   knows nothing about the wall. Two elements, two classes, one
+   boolean. Nothing here is a screenshot — the wall keeps running
+   inside the frame, arrow keys and all.
+------------------------------------------------------------ */
+
+/* Everything the wall draws lives in here so one transform can
+   carry the lot. It holds a no-op transform at all times: a
+   transformed ancestor becomes the containing block for the fixed
+   children inside it, and we don't want them re-anchoring — and
+   jumping — the instant the reveal begins. */
+#app-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: var(--cream);
+  transform-origin: 0 0;
+  transform: translate(0px, 0px) scale(1);
+  transition:
+    transform 1s cubic-bezier(0.65, 0, 0.35, 1),
+    border-radius 1s cubic-bezier(0.65, 0, 0.35, 1),
+    box-shadow 1s cubic-bezier(0.65, 0, 0.35, 1);
+}
+/* .docked only marks the state; the radius and the shadow are set
+   inline, pre-divided by the scale, so they read at their intended
+   size once the wall has shrunk. */
+
+#reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  background: #faf8f5;
+  color: #2b241c;
+  font-family: var(--sans);
+  font-size: 14px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.75s ease,
+    visibility 0s linear 0.75s;
+}
+#reveal.open {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.75s ease,
+    visibility 0s;
+}
+
+/* ---- sidebar ---- */
+#reveal .side {
+  width: 262px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: #1c1a17;
+  color: #b8b0a4;
+  padding: 12px 10px;
+}
+#reveal .side .brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px 14px;
+  color: #efe9df;
+  font-weight: 600;
+}
+#reveal .side .brand em {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 6px;
+  background: var(--accent);
+}
+#reveal .side .new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #33302b;
+  color: #d8d1c6;
+  font-size: 13px;
+}
+#reveal .side h6 {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6f675c;
+  padding: 0 10px 7px;
+}
+#reveal .side span {
+  display: block;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #b8b0a4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#reveal .side span.on {
+  background: #2b2823;
+  color: #efe9df;
+}
+#reveal .side .me {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px 2px;
+  border-top: 1px solid #2b2823;
+}
+#reveal .side .me em {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  background: #4a443b;
+  color: #efe9df;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+}
+#reveal .side .me b {
+  font-size: 13px;
+  font-weight: 500;
+  color: #d8d1c6;
+}
+#reveal .side .me i {
+  display: block;
+  font-style: normal;
+  font-size: 11px;
+  color: #6f675c;
+}
+
+/* ---- thread ---- */
+#reveal .main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+#reveal .top {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 50px;
+  padding: 0 22px;
+  border-bottom: 1px solid #ece5da;
+  font-weight: 500;
+}
+#reveal .top s {
+  text-decoration: none;
+  color: #a79c8d;
+  font-size: 11px;
+}
+#reveal .thread {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+#reveal .wrap {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+#reveal .ask {
+  align-self: flex-end;
+  max-width: 70%;
+  padding: 10px 15px;
+  border-radius: 16px 16px 4px 16px;
+  background: #efe9df;
+  color: var(--ink);
+}
+#reveal .say {
+  display: flex;
+  gap: 12px;
+}
+#reveal .say > em {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: 2px;
+}
+#reveal .say .body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+#reveal .say p {
+  line-height: 1.55;
+  color: #40382e;
+}
+/* the hole the wall falls into. Sized in JS to the live viewport
+   ratio, so the dock is an exact fit and not a letterbox. */
+#reveal .frame {
+  align-self: flex-start;
+  border-radius: 14px;
+  background: #e8e1d6;
+  box-shadow: inset 0 0 0 1px rgba(120, 100, 74, 0.16);
+}
+#reveal .chrome {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: #a79c8d;
+  font-size: 15px;
+  line-height: 1;
+}
+#reveal .chrome s {
+  text-decoration: none;
+}
+#reveal .fine {
+  font-size: 11px;
+  color: #a79c8d;
+}
+
+/* ---- the "still generating" veil, laid over the wall while it
+        shrinks so the arrival reads as a render finishing ---- */
+#reveal-shimmer {
+  position: fixed;
+  z-index: 3;
+  pointer-events: none;
+  overflow: hidden;
+  background: #e8e1d6;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.45s ease,
+    visibility 0s linear 0.45s;
+}
+#reveal-shimmer.on {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.18s ease,
+    visibility 0s;
+}
+#reveal-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    rgba(255, 255, 255, 0) 34%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 255, 255, 0) 66%
+  );
+  transform: translateX(-100%);
+  animation: revealSweep 1.15s ease-in-out infinite;
+}
+@keyframes revealSweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+#reveal-shimmer span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 7%;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: #8b8175;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+@media (max-width: 960px) {
+  #hint {
+    bottom: 16px;
+    font-size: 11px;
+  }
+  /* no room for a chat history next to the picture; the thread is
+     the part of the joke that matters */
+  #reveal .side {
+    display: none;
+  }
+  #reveal .thread {
+    padding: 14px;
+  }
+}

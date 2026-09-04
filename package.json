@@ -1,0 +1,33 @@
+{
+  "name": "promise-wall",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A slide deck presented as a gallery wall in 3D — index cards pinned to plaster, headings painted on, walked with the arrow keys.",
+  "license": "MIT",
+  "keywords": [
+    "presentation",
+    "slides",
+    "three.js",
+    "webgl",
+    "deck",
+    "3d"
+  ],
+  "type": "module",
+  "packageManager": "pnpm@10.2.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "node tools/deck-source.test.mjs"
+  },
+  "dependencies": {
+    "gsap": "^3.12.5",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.185.4",
+    "typescript": "^5.9.3",
+    "vite": "^8.2.0"
+  }
+}

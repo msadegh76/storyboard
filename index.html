@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- The shell names no deck. Whichever one deck.config.js points at
+         sets the title and the mark below the moment it is read, so what
+         is written here is only what shows while that is happening. -->
+    <title>Promise Wall</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Caveat:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- The wall's own styles, linked rather than imported from the
+         module: a stylesheet in the head blocks the first paint, so the
+         markup below is never shown before it is dressed. Imported from
+         main.ts they would be injected by script, and every reload
+         would flash the raw loader and the reveal's chat markup. -->
+    <link rel="stylesheet" href="/src/styles/base.css" />
+    <link rel="stylesheet" href="/src/styles/loader.css" />
+    <link rel="stylesheet" href="/src/styles/hud.css" />
+    <link rel="stylesheet" href="/src/styles/reveal.css" />
+  </head>
+  <body>
+    <!-- Everything the wall is. One transform on this node carries the
+         whole thing into the reveal's picture frame; see #app-root. -->
+    <div id="app-root">
+      <div id="loader">
+        <div class="mark">Promise Wall<i>&nbsp;•</i></div>
+        <div class="sub">pinning the deck to the wall…</div>
+        <div class="bar"><b></b></div>
+      </div>
+
+      <canvas id="scene"></canvas>
+
+      <div id="progress"><b id="progressBar"></b></div>
+
+      <!-- Where you are. Announced politely, so a screen reader says the
+           stop as you arrive rather than interrupting to do it. -->
+      <div id="count" aria-live="polite"></div>
+
+      <div id="hint">
+        <kbd>&#8592;</kbd><kbd>&#8594;</kbd><span>to walk the wall</span>
+        <em>&#183;</em>
+        <kbd>T</kbd><span>read it as text</span>
+        <em>&#183;</em>
+        <kbd>A</kbd><span>how it was made ✨</span>
+      </div>
+
+      <!-- What a keystroke did, when the wall itself cannot show it. -->
+      <div id="toast" role="status" aria-live="polite"></div>
+    </div>
+
+    <!-- B: a sheet over everything, so the room looks at the speaker. -->
+    <div id="blackout" aria-hidden="true"></div>
+
+    <!-- The reveal: a chat that never happened, kept outside #app-root
+         so the wall's transform can't reach it. Decorative and inert —
+         every element here is a <span>, because a link inside an
+         aria-hidden container is still reachable by Tab, and there is
+         nothing here worth landing on. Nobody real is named: this ships
+         in every fork of the project. -->
+    <div id="reveal" aria-hidden="true">
+      <div class="side">
+        <div class="brand"><em></em>Assistant</div>
+        <div class="new">&#43;&nbsp; New chat</div>
+        <h6>Recent</h6>
+        <span class="on">make me a website</span>
+        <span>why is my LCP 4.2 seconds</span>
+        <span>naming this variable, again</span>
+        <span>explain flexbox to a cat</span>
+        <span>is a wall a good metaphor</span>
+        <span>the roadmap, but shorter</span>
+        <div class="me">
+          <em>&#9679;</em>
+          <div><b>you</b><i>signed in</i></div>
+        </div>
+      </div>
+
+      <div class="main">
+        <div class="top">Claude Opus 5 <s>&#9662;</s></div>
+        <div class="thread">
+          <div class="wrap">
+            <div class="ask">make me a website</div>
+            <div class="say">
+              <em></em>
+              <div class="body">
+                <p>
+                  Sure. Here&#8217;s a warm-lit gallery wall in a browser:
+                  index cards pinned to plaster and headings painted
+                  straight onto it, walked with the arrow keys, lit by a
+                  single spotlight, with dust in the air.
+                </p>
+                <div class="frame" id="revealFrame"></div>
+                <div class="chrome">
+                  <s>&#8635;</s><s>&#10697;</s><s>&#9825;</s>
+                </div>
+                <div class="fine">
+                  Claude can make mistakes. This one, apparently, it actually
+                  built.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="reveal-shimmer" aria-hidden="true">
+      <span>Generating image…</span>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

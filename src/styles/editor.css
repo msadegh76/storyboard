@@ -1,0 +1,679 @@
+/* ------------------------------------------------------------
+   EDITOR — the dev-mode panel beside the wall. See src/ui/editor.ts.
+
+   Imported from that module rather than linked in index.html, which is
+   what keeps it out of a built deck: the module is only loaded behind
+   `import.meta.env.DEV`, so the stylesheet goes with it. The flash this
+   would otherwise cause is not a concern here — the panel starts closed.
+------------------------------------------------------------ */
+#editor {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 80;
+  width: 316px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(250, 247, 241, 0.95);
+  backdrop-filter: blur(10px);
+  border-left: 1px solid var(--line);
+  box-shadow: -12px 0 32px rgba(70, 52, 28, 0.1);
+  font-size: 13px;
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+#editor.show {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  #editor {
+    transition: none;
+  }
+}
+
+/* ---- header: where we are, and whether the file agrees ---- */
+#editor header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 8px 10px 14px;
+  border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+.ed-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+#editor header b {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ed-status {
+  font-size: 11px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.ed-status::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6f9a63;
+  margin-right: 6px;
+  vertical-align: 0;
+}
+.ed-status.dirty {
+  color: var(--ink);
+}
+.ed-status.dirty::before {
+  background: var(--accent);
+}
+.ed-status.busy::before {
+  background: var(--accent);
+  animation: ed-pulse 0.9s ease-in-out infinite;
+}
+@keyframes ed-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ed-status.busy::before {
+    animation: none;
+  }
+}
+
+/* ---- where a picture comes from ---- */
+.ed-drop {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 12px 10px;
+  border: 1.5px dashed #c9bfae;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.45);
+  text-align: center;
+  color: var(--ink-soft);
+}
+.ed-drop b {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.ed-drop small {
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+.ed-drop:hover,
+.ed-drop.over {
+  border-color: var(--accent);
+  background: #fff;
+}
+.ed-drop.busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
+/* the whole wall is a target while a file is over it */
+#editor.ed-dropping {
+  box-shadow: inset 0 0 0 2px var(--accent), -12px 0 32px rgba(70, 52, 28, 0.1);
+}
+
+/* ---- what was just taken away, offered back ---- */
+#ed-undo {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 90;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 8px 8px 14px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--cream);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  box-shadow: 0 8px 24px rgba(70, 52, 28, 0.25);
+}
+#ed-undo button {
+  font: inherit;
+  cursor: pointer;
+  border: 0;
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+#ed-undo button.ed-x {
+  background: none;
+  color: var(--cream);
+  padding: 2px 6px;
+  font-weight: 400;
+}
+#ed-undo button.ed-x:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.ed-x {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.ed-x:hover {
+  background: rgba(120, 100, 74, 0.1);
+  color: var(--ink);
+}
+
+/* ---- body and footer ---- */
+.ed-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ed-foot {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--line);
+  background: rgba(250, 247, 241, 0.98);
+}
+.ed-foot .ed-note {
+  flex-basis: 100%;
+  margin: 0;
+  min-height: 0;
+}
+.ed-foot .ed-note:empty {
+  display: none;
+}
+
+/* ---- buttons, by role ---- */
+#editor button {
+  font: inherit;
+  cursor: pointer;
+}
+.ed-foot > button,
+.ed-acts > button {
+  flex: 1;
+  padding: 8px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  color: var(--ink);
+}
+.ed-foot > button:hover,
+.ed-acts > button:hover {
+  border-color: var(--ink-soft);
+}
+.ed-go {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+  font-weight: 500;
+}
+.ed-go:hover {
+  filter: brightness(0.94);
+}
+.ed-wide {
+  flex-basis: 100%;
+}
+.ed-narrow {
+  flex: 0 0 auto !important;
+}
+.ed-add {
+  font-weight: 500;
+}
+.ed-quiet {
+  font-size: 11px !important;
+  color: var(--ink-soft) !important;
+}
+.ed-danger {
+  color: #b0472c !important;
+}
+.ed-danger:hover {
+  border-color: #b0472c !important;
+}
+.ed-gone {
+  margin-top: 8px;
+}
+
+/* ---- the cards of this slide ---- */
+.ed-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ed-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 8px 4px 5px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+.ed-chip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ed-chip.on {
+  border-color: var(--accent);
+  color: var(--ink);
+  background: #fff;
+}
+
+/* ---- every slide, on the wide shot ---- */
+.ed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ed-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.55);
+}
+.ed-row.lifting {
+  opacity: 0.4;
+}
+.ed-row.over {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* the slide the deck is standing on */
+.ed-row.here {
+  background: #fff;
+  border-color: var(--ink-soft);
+}
+.ed-row.here .ed-row-go b {
+  color: var(--accent);
+}
+.ed-row-go {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 6px 4px 6px 8px;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-size: 12px;
+  color: var(--ink);
+  cursor: grab;
+}
+.ed-row-go:hover {
+  color: var(--accent);
+}
+.ed-row-go b {
+  flex: 0 0 16px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.ed-row-kinds {
+  display: inline-flex;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.ed-row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ed-row-moves {
+  display: inline-flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  padding-right: 3px;
+}
+.ed-row-moves button {
+  border: 0;
+  background: none;
+  font-size: 8px;
+  line-height: 1;
+  padding: 3px 6px;
+  color: var(--ink-soft);
+}
+.ed-row-moves button:hover:not(:disabled) {
+  color: var(--accent);
+}
+.ed-row-moves button:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+/* ---- a kind, drawn: paper, a print, paint ---- */
+.ed-sw {
+  flex: 0 0 auto;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.ed-sw i {
+  font-style: normal;
+}
+.ed-sw-note,
+.ed-sw-photo {
+  background: #fdfbf5;
+  border: 1px solid #e6dfd1;
+  box-shadow: 1px 2px 4px rgba(70, 52, 28, 0.18);
+}
+.ed-sw-note {
+  transform: rotate(-3deg);
+}
+.ed-sw-note::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #9a7b3f;
+}
+.ed-sw-note::after {
+  content: "";
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  top: 46%;
+  height: 2px;
+  background: #c9bfae;
+  box-shadow: 0 6px 0 #d9d0c1;
+}
+.ed-sw-photo {
+  padding: 4px 4px 7px;
+  box-sizing: border-box;
+}
+.ed-sw-photo i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(160deg, #b9d3d8, #e8ddc4 60%, #dcc9a3);
+}
+.ed-sw-heading {
+  background: var(--cream);
+}
+.ed-sw-heading i {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 18px;
+  color: #4a1c1a;
+  line-height: 1;
+}
+/* the same, small enough for a chip */
+.ed-sw-s {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+}
+.ed-sw-s.ed-sw-note::before {
+  top: 1px;
+  width: 3px;
+  height: 3px;
+}
+.ed-sw-s.ed-sw-note::after {
+  top: 45%;
+  height: 1px;
+  box-shadow: 0 3px 0 #d9d0c1;
+}
+.ed-sw-s.ed-sw-photo {
+  padding: 2px 2px 3px;
+}
+.ed-sw-s.ed-sw-heading i {
+  font-size: 9px;
+}
+
+/* ---- the chooser ---- */
+.ed-kinds {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ed-kind {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 10px;
+  align-items: center;
+  text-align: left;
+  padding: 8px 10px 8px 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--ink);
+}
+.ed-kind:hover {
+  border-color: var(--ink-soft);
+}
+.ed-kind.on {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  background: #fff;
+}
+.ed-kind b {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.ed-kind small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+/* ---- segmented choices ---- */
+.ed-seg {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.ed-seg button {
+  padding: 6px 4px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.ed-seg button:last-child {
+  border-right: 0;
+}
+.ed-seg button.on {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ---- groups of fields ---- */
+.ed-sec {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.ed-sec summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  padding: 2px 0;
+  user-select: none;
+}
+.ed-sec summary::-webkit-details-marker {
+  display: none;
+}
+.ed-sec summary::after {
+  content: "▸";
+  margin-left: auto;
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+.ed-sec[open] summary::after {
+  content: "▾";
+}
+.ed-sec summary b {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.ed-sec summary i {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--ink-soft);
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.ed-sec[open] summary i {
+  display: none;
+}
+.ed-sec > *:not(summary) {
+  margin-top: 8px;
+}
+.ed-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* ---- one field ---- */
+.ed-f {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ed-f > label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.ed-f input[type="text"],
+.ed-f input[type="number"],
+.ed-f select,
+.ed-f textarea {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  resize: vertical;
+}
+.ed-f textarea {
+  line-height: 1.45;
+}
+.ed-f input::placeholder,
+.ed-f textarea::placeholder {
+  color: #b3a998;
+}
+.ed-f input:focus,
+.ed-f select:focus,
+.ed-f textarea:focus,
+#editor button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+.ed-f input[type="color"] {
+  width: 46px;
+  height: 28px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+.ed-flag {
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+}
+.ed-flag label {
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  cursor: pointer;
+}
+.ed-flag input {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ---- words beside the fields ---- */
+.ed-acts {
+  display: flex;
+  gap: 6px;
+}
+.ed-note,
+.ed-empty,
+.ed-hint {
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0;
+}
+.ed-empty {
+  font-size: 12px;
+}
+.ed-note.bad {
+  color: #b0472c;
+}
+
+/* while a card is being carried */
+body.ed-open #scene {
+  cursor: grab;
+}
+#editor.ed-moving ~ #app-root #scene,
+body.ed-open #editor.ed-moving {
+  cursor: grabbing;
+}

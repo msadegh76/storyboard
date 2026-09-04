@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Presenter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/styles/present.css" />
+  </head>
+  <body>
+    <!-- This page never loads the scene. It is a page of text about a
+         page of pictures, and it is opened beside the wall rather than
+         instead of it — so it must not spend a second on three.js. -->
+    <header>
+      <b id="deck">Presenter</b>
+      <span id="count">—</span>
+      <span id="clock"></span>
+    </header>
+
+    <main>
+      <section id="now">
+        <p class="waiting">
+          Waiting for a wall. Open the deck in another window and press
+          <kbd>P</kbd>.
+        </p>
+      </section>
+      <aside id="next"></aside>
+    </main>
+
+    <footer>
+      <div class="times">
+        <span><em id="elapsed">0:00</em> elapsed</span>
+        <span><em id="onstop">0:00</em> on this stop</span>
+        <button id="reset" type="button">Reset</button>
+      </div>
+      <div class="walk">
+        <button id="prev" type="button" aria-label="Previous stop">←</button>
+        <button id="next-btn" type="button" aria-label="Next stop">→</button>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/present.ts"></script>
+  </body>
+</html>

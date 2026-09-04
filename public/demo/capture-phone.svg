@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="1320" viewBox="0 0 640 1320" font-family="Helvetica, Arial, sans-serif">
+  <!-- A stand-in for a phone capture, tall the way a phone is. -->
+  <rect width="640" height="1320" rx="48" fill="#1d1a16"/>
+  <rect x="16" y="16" width="608" height="1288" rx="36" fill="#f4f1ea"/>
+  <rect x="236" y="34" width="168" height="30" rx="15" fill="#1d1a16"/>
+
+  <text x="48" y="140" font-size="34" font-weight="700" fill="#2b241c">Good morning</text>
+  <text x="48" y="178" font-size="18" fill="#6f655a">The sourdough is out at 7:30</text>
+
+  <rect x="48" y="220" width="544" height="300" rx="20" fill="#d97a3f"/>
+  <text x="80" y="290" font-size="22" fill="#fff" opacity="0.85">Today's loaf</text>
+  <text x="80" y="350" font-size="42" font-weight="700" fill="#fff">Rye &amp; caraway</text>
+  <text x="80" y="400" font-size="20" fill="#fff" opacity="0.85">Baked at 6:10 · 18 left</text>
+  <rect x="80" y="440" width="180" height="48" rx="24" fill="#fff"/>
+  <text x="170" y="471" font-size="18" font-weight="700" fill="#d97a3f" text-anchor="middle">Reserve one</text>
+
+  <g font-size="20" fill="#2b241c">
+    <rect x="48" y="560" width="544" height="96" rx="16" fill="#fff" stroke="#e0d9cc"/>
+    <text x="80" y="600" font-weight="700">Country loaf</text>
+    <text x="80" y="632" font-size="16" fill="#6f655a">Sold out</text>
+    <rect x="48" y="672" width="544" height="96" rx="16" fill="#fff" stroke="#e0d9cc"/>
+    <text x="80" y="712" font-weight="700">Seeded batard</text>
+    <text x="80" y="744" font-size="16" fill="#6f655a">7 left</text>
+    <rect x="48" y="784" width="544" height="96" rx="16" fill="#fff" stroke="#e0d9cc"/>
+    <text x="80" y="824" font-weight="700">Cardamom buns</text>
+    <text x="80" y="856" font-size="16" fill="#6f655a">Tray of 12 · 15 left</text>
+    <rect x="48" y="896" width="544" height="96" rx="16" fill="#fff" stroke="#e0d9cc"/>
+    <text x="80" y="936" font-weight="700">Focaccia, rosemary</text>
+    <text x="80" y="968" font-size="16" fill="#6f655a">Out at noon</text>
+  </g>
+
+  <rect x="16" y="1200" width="608" height="104" rx="0" fill="#fff"/>
+  <line x1="16" y1="1200" x2="624" y2="1200" stroke="#e0d9cc"/>
+  <g fill="#6f655a" font-size="14" text-anchor="middle">
+    <circle cx="120" cy="1238" r="12" fill="#d97a3f"/><text x="120" y="1280" fill="#2b241c">Today</text>
+    <circle cx="320" cy="1238" r="12"/><text x="320" y="1280">Orders</text>
+    <circle cx="520" cy="1238" r="12"/><text x="520" y="1280">You</text>
+  </g>
+</svg>

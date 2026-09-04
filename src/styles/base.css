@@ -1,0 +1,137 @@
+/* Base — tokens, reset, and the canvas the wall is drawn on. */
+:root {
+  --cream: #efe9df;
+  --ink: #2b241c;
+  --ink-soft: #6f655a;
+  --accent: #d97a3f;
+  --line: #e2dacc;
+  --sans: "Inter", system-ui, sans-serif;
+  --serif: "Cormorant Garamond", Georgia, serif;
+  --hand: "Caveat", cursive;
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--cream);
+}
+#scene {
+  position: fixed;
+  inset: 0;
+  display: block;
+  cursor: default;
+}
+
+
+/* The deck as text, published beside the wall.
+
+   Positioned off the page rather than hidden: `display: none` and
+   `visibility: hidden` are both skipped by screen readers, and this has
+   to be read. It stays in the accessibility tree, in the DOM for a
+   crawler, and reachable by the browser's own find — which is the whole
+   reason it exists. See src/ui/transcript.ts. */
+#transcript {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  /* a hair off the corner, so it can never become a scroll anchor */
+  top: 0;
+  left: -1px;
+}
+
+/* …and brought out from behind it, on T.
+
+   The same markup, the same words: what a screen reader has always had
+   is simply given a size. Nothing is duplicated, so the two can never
+   disagree. */
+body.reading #transcript {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  width: auto;
+  height: auto;
+  overflow-y: auto;
+  clip-path: none;
+  white-space: normal;
+  background: var(--cream);
+  padding: 8vh 6vw 12vh;
+}
+/* One measure for the whole column. `ch` would not do it: it is the
+   width of a zero in the element's *own* font, so the serif heading
+   would run a third wider than the paragraphs under it. */
+body.reading #transcript > * {
+  max-width: 34rem;
+  margin: 0 auto;
+}
+#transcript h1 {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  line-height: 1.15;
+  margin-bottom: 1.6rem;
+}
+#transcript section {
+  border-top: 1px solid var(--line);
+  padding: 2.2rem 0;
+}
+#transcript h2 {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 3.4vw, 2rem);
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+}
+#transcript h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 1.4rem 0 0.4rem;
+}
+#transcript p,
+#transcript li {
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+#transcript p {
+  margin-bottom: 0.7rem;
+}
+#transcript ul {
+  margin: 0 0 0.9rem 1.1rem;
+}
+#transcript li {
+  margin-bottom: 0.25rem;
+}
+/* the narration reads as speech, not as more of the card */
+#transcript .say {
+  border-left: 2px solid var(--accent);
+  padding-left: 0.9rem;
+  font-family: var(--serif);
+  font-size: 1.08rem;
+  color: var(--ink);
+}
+#transcript .foot {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+#transcript table {
+  border-collapse: collapse;
+  margin-bottom: 0.9rem;
+  font-size: 0.9rem;
+}
+#transcript th,
+#transcript td {
+  border: 1px solid var(--line);
+  padding: 5px 10px;
+  text-align: left;
+}

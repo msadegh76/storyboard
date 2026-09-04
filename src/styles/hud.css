@@ -1,0 +1,149 @@
+/* ------------------------------------------------------------
+   STORY — a progress hairline and a hint that fades. Nothing else
+   is drawn over the wall.
+------------------------------------------------------------ */
+#progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 60;
+  background: rgba(120, 100, 74, 0.14);
+}
+#progress b {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+#hint {
+  position: fixed;
+  left: 50%;
+  bottom: 30px;
+  transform: translate(-50%, 8px);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px 9px 12px;
+  border-radius: 999px;
+  background: rgba(250, 247, 241, 0.86);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 24px rgba(70, 52, 28, 0.14);
+  font-size: 12px;
+  color: var(--ink-soft);
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+#hint.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+#hint span {
+  white-space: nowrap;
+}
+#hint kbd {
+  font-family: var(--sans);
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+#hint em {
+  font-style: normal;
+  opacity: 0.4;
+  margin: 0 1px;
+}
+
+/* The stop you are on. Quiet enough to ignore while presenting, there
+   the moment you wonder how far in you are. */
+#count {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  z-index: 60;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+/* the two ends of the walk are the whole wall, and carry no number */
+#count:empty {
+  opacity: 0;
+}
+
+/* Dev only: a deck with a card that fell back to a default says so
+   here, so the author is not relying on having the console open. Never
+   built into a deck that is being presented — see main.ts. */
+#complaints {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 70;
+  max-width: 60ch;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: #b0472c;
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 12px;
+  cursor: help;
+}
+
+/* B — the wall, taken away.
+
+   Not `display: none` on the canvas: the renderer keeps drawing either
+   way, and coming back has to be instant. A sheet over the top is both. */
+#blackout {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+body.blacked #blackout {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  #blackout {
+    transition: none;
+  }
+}
+
+/* What a keystroke did. Quiet, brief, and never in the way. */
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: 76px;
+  transform: translate(-50%, 6px);
+  z-index: 70;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(43, 36, 28, 0.9);
+  color: var(--cream);
+  font-size: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+#toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}

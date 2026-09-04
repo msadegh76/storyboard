@@ -1,0 +1,229 @@
+/* ------------------------------------------------------------
+   PRESENTER — the second window. See src/present.ts.
+
+   Read in a dark room, at a glance, by someone who is talking. So:
+   large type, a dark ground that will not light up a lectern, and the
+   one thing that matters — what you meant to say — set apart from
+   everything the room can already read for itself.
+------------------------------------------------------------ */
+:root {
+  --ink: #f3efe6;
+  --dim: #a49b8b;
+  --faint: #6f665a;
+  --ground: #17150f;
+  --raised: #201d16;
+  --line: #35301f;
+  --accent: #e08a4d;
+  --sans: "Inter", system-ui, sans-serif;
+  --serif: "Cormorant Garamond", Georgia, serif;
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+header b {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+header #count {
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  font-weight: 500;
+}
+header #clock {
+  margin-left: auto;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+}
+
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 20rem;
+  min-height: 0;
+}
+#now {
+  overflow-y: auto;
+  padding: 28px 32px 40px;
+}
+#next {
+  overflow-y: auto;
+  padding: 22px 22px 40px;
+  border-left: 1px solid var(--line);
+  background: var(--raised);
+}
+@media (max-width: 720px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+  #next {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+.card + .card {
+  margin-top: 26px;
+  padding-top: 26px;
+  border-top: 1px solid var(--line);
+}
+#now h2 {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 3.2vw, 2.1rem);
+  line-height: 1.15;
+  margin-bottom: 0.5rem;
+}
+#now .mural h2 {
+  color: var(--accent);
+}
+#now p {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--dim);
+  margin-bottom: 0.6rem;
+}
+#now ul {
+  margin: 0 0 0.8rem 1.15rem;
+}
+#now li {
+  line-height: 1.6;
+  color: var(--dim);
+  margin-bottom: 0.3rem;
+}
+#now .foot,
+#now .img {
+  font-size: 0.85rem;
+  color: var(--faint);
+}
+
+/* the reason this window exists */
+#now .say {
+  margin-top: 1rem;
+  border-left: 3px solid var(--accent);
+  padding: 0.2rem 0 0.2rem 1rem;
+  font-family: var(--serif);
+  font-size: clamp(1.2rem, 2.4vw, 1.6rem);
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+#next h4 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 12px;
+}
+#next .card h4 {
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+#next p {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--faint);
+}
+#next .card + .card {
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.waiting {
+  color: var(--faint);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+.waiting kbd {
+  font-family: inherit;
+  font-size: 0.8em;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--dim);
+}
+
+footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+.times {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 13px;
+  color: var(--faint);
+}
+.times em {
+  font-style: normal;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  margin-right: 5px;
+}
+.walk {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+button {
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--dim);
+  cursor: pointer;
+}
+.walk button {
+  width: 54px;
+  height: 40px;
+  font-size: 18px;
+}
+#reset {
+  padding: 5px 11px;
+  font-size: 12px;
+}
+button:hover {
+  border-color: var(--faint);
+  color: var(--ink);
+}
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

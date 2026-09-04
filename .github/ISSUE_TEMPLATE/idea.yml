@@ -1,0 +1,25 @@
+name: An idea
+description: A new kind of card, a knob worth having, a better way to write a deck.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+    validations:
+      required: true
+
+  - type: textarea
+    id: authored
+    attributes:
+      label: How it would be written
+      description: >
+        If it changes the deck format, show the config you would want to
+        write. The shape of the API matters more than the implementation.
+      render: js
+
+  - type: textarea
+    id: why
+    attributes:
+      label: What you were trying to do
+      description: The deck or the moment that made you want this.

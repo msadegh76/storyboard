@@ -1,0 +1,39 @@
+name: Something is wrong on the wall
+description: A card renders badly, the walk misbehaves, or the build fails.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens
+      description: And what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: deck
+    attributes:
+      label: The deck
+      description: >
+        The slide it happens on, or the smallest deck that reproduces it.
+        This is usually the fastest way to a fix.
+      render: js
+
+  - type: input
+    id: where
+    attributes:
+      label: Browser and OS
+      placeholder: Chrome 141 on macOS 15
+
+  - type: textarea
+    id: shot
+    attributes:
+      label: A screenshot
+      description: If it is visual, drag one in.
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console output
+      description: Anything the console said on a fresh load.
+      render: shell

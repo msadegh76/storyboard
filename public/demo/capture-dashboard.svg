@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="880" viewBox="0 0 1440 880" font-family="Helvetica, Arial, sans-serif">
+  <!-- A stand-in for a screenshot: a dashboard nobody runs. Shipped so a
+       photo card has something wide to show without a real product in it. -->
+  <rect width="1440" height="880" fill="#f4f1ea"/>
+  <rect width="1440" height="64" fill="#2b241c"/>
+  <circle cx="34" cy="32" r="9" fill="#d97a3f"/>
+  <text x="58" y="39" font-size="20" font-weight="700" fill="#efe9df">Lighthouse Bakery · Sales</text>
+  <text x="1290" y="39" font-size="16" fill="#ada393">Last 12 months</text>
+
+  <g font-size="14" fill="#6f655a">
+    <rect x="40" y="96" width="320" height="120" rx="10" fill="#fff" stroke="#e0d9cc"/>
+    <text x="64" y="128">Loaves a day</text>
+    <text x="64" y="186" font-size="44" font-weight="700" fill="#2b241c">412</text>
+    <text x="180" y="186" font-size="16" fill="#4f7a4a">▲ 18%</text>
+
+    <rect x="384" y="96" width="320" height="120" rx="10" fill="#fff" stroke="#e0d9cc"/>
+    <text x="408" y="128">Regulars</text>
+    <text x="408" y="186" font-size="44" font-weight="700" fill="#2b241c">1,208</text>
+    <text x="540" y="186" font-size="16" fill="#4f7a4a">▲ 9%</text>
+
+    <rect x="728" y="96" width="320" height="120" rx="10" fill="#fff" stroke="#e0d9cc"/>
+    <text x="752" y="128">Sold out by</text>
+    <text x="752" y="186" font-size="44" font-weight="700" fill="#2b241c">14:10</text>
+
+    <rect x="1072" y="96" width="328" height="120" rx="10" fill="#fff" stroke="#e0d9cc"/>
+    <text x="1096" y="128">Waste</text>
+    <text x="1096" y="186" font-size="44" font-weight="700" fill="#2b241c">3.1%</text>
+    <text x="1230" y="186" font-size="16" fill="#4f7a4a">▼ 2.4</text>
+  </g>
+
+  <rect x="40" y="248" width="1360" height="592" rx="10" fill="#fff" stroke="#e0d9cc"/>
+  <text x="64" y="284" font-size="16" font-weight="700" fill="#2b241c">Loaves sold, by month</text>
+  <g stroke="#ece6da">
+    <line x1="80" y1="760" x2="1370" y2="760"/>
+    <line x1="80" y1="640" x2="1370" y2="640"/>
+    <line x1="80" y1="520" x2="1370" y2="520"/>
+    <line x1="80" y1="400" x2="1370" y2="400"/>
+  </g>
+  <g fill="#d97a3f">
+    <rect x="110" y="600" width="72" height="160"/>
+    <rect x="216" y="580" width="72" height="180"/>
+    <rect x="322" y="610" width="72" height="150"/>
+    <rect x="428" y="540" width="72" height="220"/>
+    <rect x="534" y="520" width="72" height="240"/>
+    <rect x="640" y="470" width="72" height="290"/>
+    <rect x="746" y="480" width="72" height="280"/>
+    <rect x="852" y="440" width="72" height="320"/>
+    <rect x="958" y="420" width="72" height="340"/>
+    <rect x="1064" y="380" width="72" height="380"/>
+    <rect x="1170" y="360" width="72" height="400"/>
+    <rect x="1276" y="330" width="72" height="430"/>
+  </g>
+  <g font-size="14" fill="#6f655a" text-anchor="middle">
+    <text x="146" y="790">Jan</text><text x="252" y="790">Feb</text><text x="358" y="790">Mar</text>
+    <text x="464" y="790">Apr</text><text x="570" y="790">May</text><text x="676" y="790">Jun</text>
+    <text x="782" y="790">Jul</text><text x="888" y="790">Aug</text><text x="994" y="790">Sep</text>
+    <text x="1100" y="790">Oct</text><text x="1206" y="790">Nov</text><text x="1312" y="790">Dec</text>
+  </g>
+</svg>
