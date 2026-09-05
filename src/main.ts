@@ -115,6 +115,7 @@ Promise.all([fontWait, loadImages(deck.images)]).then(() => {
   requestAnimationFrame(loop);
   setTimeout(() => {
     loader?.classList.add("done");
+    fitCamera(); // the window has its real size by now, whatever it said at load
     storyStart();
   }, 400);
 });

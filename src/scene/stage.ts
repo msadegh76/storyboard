@@ -24,9 +24,12 @@ renderer.toneMappingExposure = 1.04;
 
 export const scene = new THREE.Scene();
 scene.background = new THREE.Color("#ddd4c2");
+/* The aspect is set for real by fitCamera() before the first frame; a
+   window still being made can report no size at all here, and 0 / 0 is
+   NaN — which would have gone into every framing after it. */
 export const camera = new THREE.PerspectiveCamera(
   38,
-  innerWidth / innerHeight,
+  Math.max(1, innerWidth) / Math.max(1, innerHeight),
   0.1,
   200,
 );
@@ -49,10 +52,12 @@ camera.position.set(0, 0, 34);
 let inset = 0;
 export function fitCamera(rightInset = inset) {
   inset = rightInset;
+  // a window being made can report no size for a frame; never divide by it
+  const h = Math.max(1, innerHeight);
   const w = Math.max(240, innerWidth - inset);
-  camera.aspect = w / innerHeight;
+  camera.aspect = w / h;
   if (inset > 0 && w < innerWidth)
-    camera.setViewOffset(w, innerHeight, 0, 0, innerWidth, innerHeight);
+    camera.setViewOffset(w, h, 0, 0, innerWidth, h);
   else camera.clearViewOffset();
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);

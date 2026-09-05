@@ -8,7 +8,16 @@
 
 import { gsap } from "../vendor.js";
 import { clamp, el, REDUCED } from "../util.js";
-import { FILL, STORY_LIFT } from "../config.js";
+import { FILL, STORY_LIFT, FLOOR_Y, WALL_TOP, WALL_W } from "../config.js";
+
+/* How far the camera may look across and up the wall. The room is a
+   fixed size; a deck is not — a long one climbs the wall (layout.ts),
+   so the stop at its top row is framed high, not held at a ceiling
+   set for four rows. Derived from the room so the two cannot drift. */
+const LOOK_X = WALL_W / 2 - 4;
+const LOOK_Y = [FLOOR_Y + 2.5, WALL_TOP - 8] as const;
+const lookX = (x: number) => clamp(x, -LOOK_X, LOOK_X);
+const lookY = (y: number) => clamp(y, LOOK_Y[0], LOOK_Y[1]);
 import { cam, camera } from "../scene/stage.js";
 import { cards } from "../scene/card.js";
 import { tap } from "../scene/sound.js";
@@ -87,7 +96,7 @@ function storyWide(): Framing {
     pad = 1.14;
   return {
     tx: clamp(b.cx, -16, 16),
-    ty: clamp(b.cy, -16, 16),
+    ty: lookY(b.cy),
     /* No upper stop worth having: the distance that holds the whole
        wall is arithmetic, and a window narrow enough to need 140 units
        needs them. Capping it here is what made a phone show half a
@@ -117,11 +126,17 @@ export function storyFrame(gs: CardGroup[]): Framing {
     120,
   );
   return {
-    tx: clamp(b.cx, -28, 28),
-    ty: clamp(b.cy, -18.5, 18.5),
+    tx: lookX(b.cx),
+    ty: lookY(b.cy),
     tz: clamp(b.z + STORY_LIFT + d, 4, 124),
   };
 }
+
+/* A framing with a NaN in it — a viewport of no size for one frame
+   while a window is being made, a card measured before it exists —
+   must not be flown to: the tween would write the string "NaN" into
+   the camera and it would never move again. */
+const sane = (f: Framing) => [f.tx, f.ty, f.tz].every(Number.isFinite);
 
 /* Lift the stop's promise a little off the wall. Every other promise
    stays exactly as it is — the deck never fades the wall down. */
@@ -141,6 +156,7 @@ function storyFly(beat: Beat) {
   if (storyTL) storyTL.kill();
   const gs = groupsOf(beat);
   const to = gs.length ? storyFrame(gs) : storyWide();
+  if (!sane(to)) return;
   const dist = Math.hypot(to.tx - cam.tx, to.ty - cam.ty);
   const zoom = Math.abs(to.tz - cam.tz); // only the overview stops zoom
   const dur = REDUCED
@@ -162,6 +178,7 @@ export function storyReframe() {
   if (!b) return;
   const gs = groupsOf(b);
   const to = gs.length ? storyFrame(gs) : storyWide();
+  if (!sane(to)) return;
   if (storyTL) storyTL.kill();
   storyTL = gsap.to(cam, {
     tx: to.tx,
