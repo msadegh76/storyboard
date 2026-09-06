@@ -8,6 +8,7 @@
    author leaves out, `schema.ts` decides. */
 
 import type { PaperName } from "../textures/papers.js";
+import type { RoomName } from "../rooms.js";
 
 /** How a card is held to the wall. */
 export type Attach = "pin" | "clip" | "tape";
@@ -158,6 +159,12 @@ export interface Deck {
   seed?: string | number;
   /** Wide shots at the ends of the walk. `"both"` by default. */
   overview?: Overview;
+  /**
+   * The room the deck hangs in: `"plaster"` (default), `"studio"` or
+   * `"night"`. A room is the wall, the floor, the light, and what paper
+   * and ink a card gets when you say nothing — chosen whole.
+   */
+  room?: RoomName;
   /** The stops, in the order they are walked. */
   slides: Slide[];
 }

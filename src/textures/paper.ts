@@ -1,6 +1,7 @@
 /* Paper: the stock, its lines, the handwriting, and the doodle. */
 
 import { THREE } from "../vendor.js";
+import { currentRoom } from "../rooms.js";
 import { SS } from "../config.js";
 import { rnd } from "../util.js";
 import type { Promise_ } from "../deck/types.js";
@@ -112,7 +113,7 @@ export function makePaperTexture(p: Promise_) {
   }
   // ---- text: an optional heading, a body, an optional list and a
   //      footnote, stacked and shrunk together until the block fits
-  const ink = def.ink || "#463a2b";
+  const ink = def.ink || currentRoom().paper.ink;
   const pad = def.spiral ? 62 : 46;
   const maxW = W - pad * 2;
   const face = (weight: number, size: number) =>

@@ -2,6 +2,7 @@
    fixing, no shadow — the wall carries it. */
 
 import { THREE } from "../vendor.js";
+import { currentRoom } from "../rooms.js";
 import { clamp, rnd } from "../util.js";
 import type { Promise_ } from "../deck/types.js";
 import { ctx2d, speckle, wrapText, rowH } from "./draw.js";
@@ -18,7 +19,7 @@ export function makeMuralTexture(p: Promise_) {
   c.width = W;
   c.height = H;
   const ctx = ctx2d(c);
-  const paint = p.paint || "#6d5334"; // hand-mixed ochre
+  const paint = paintFor(p.paint);
   const face = (weight: number, size: number) =>
     p.font === "sans"
       ? `${weight} ${size}px Inter, system-ui, sans-serif`
@@ -265,3 +266,26 @@ export function makeMuralTexture(p: Promise_) {
   return { tex, ratio };
 }
 
+
+/* The paint a heading is written in: what the author mixed, or the
+   room's own. With one exception — nobody can write charcoal on
+   charcoal. A deck written for the plaster room paints its headings
+   dark, and hung in the night room those would vanish into the wall;
+   so a paint darker than the wall it is on is written in the room's
+   chalk instead. Everything lighter than the wall is kept as chosen. */
+function luminance(hex: string) {
+  const n = parseInt(hex.replace("#", ""), 16);
+  if (!Number.isFinite(n) || hex.length < 7) return 0.5;
+  const r = (n >> 16) & 255,
+    g = (n >> 8) & 255,
+    b = n & 255;
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+}
+function paintFor(chosen?: string) {
+  const room = currentRoom();
+  if (!chosen) return room.paper.paint;
+  const wall = luminance(room.plaster.base);
+  // on a dark wall, a paint that would be lost in it becomes chalk
+  if (wall < 0.4 && luminance(chosen) < wall + 0.15) return room.paper.paint;
+  return chosen;
+}

@@ -1,0 +1,225 @@
+/* The rooms a deck can hang in.
+
+   A "theme" here is not a colour: it is a whole room — what the wall is
+   made of, what the floor is, how warm the light is, what paper and
+   ink a card gets when the author says nothing, and what the chrome
+   around the wall is coloured. Each of those decides the others; a
+   cool white gallery wants concrete underfoot and steel pins, a dark
+   wall wants chalk for its headings and warmer dust in its one spot of
+   light. So a room is chosen whole, by name, and everything that draws
+   the scene reads its colours from here rather than carrying its own.
+
+   Three rooms. They are meant to be told apart at a glance and to each
+   be one coherent place; a fourth belongs here only if it is too. */
+
+import type { PaperName } from "./textures/papers.js";
+
+export type RoomName = "plaster" | "studio" | "night";
+export const ROOMS: readonly RoomName[] = ["plaster", "studio", "night"];
+
+export interface Room {
+  name: RoomName;
+  /** What shows past the wall's edges, and what the far end fades into. */
+  background: string;
+  fog: number;
+  /** The plaster: its base, the light and dark blotches worked into it,
+      the cracks, and the block joints — or none, for a wall that was
+      never stone. */
+  plaster: {
+    base: string;
+    light: string;
+    dark: string;
+    cracks: string;
+    seams: boolean;
+    seam: string;
+    seamLight: string;
+    bump: number;
+  };
+  floor: {
+    kind: "oak" | "concrete";
+    /** The texture's own colour, and the tint the material lays over it. */
+    base: string;
+    tint: number;
+  };
+  skirting: number;
+  /** The colour the baked contact shading is made of, as "r,g,b". */
+  contact: string;
+  light: {
+    sky: number;
+    ground: number;
+    ambient: number;
+    key: number;
+    keyStrength: number;
+    fill: number;
+    fillStrength: number;
+    exposure: number;
+  };
+  dust: { color: number; opacity: number };
+  /** What a card gets when the author says nothing. */
+  paper: { stock: PaperName; ink: string; paint: string; pin: number };
+  /** The chrome around the wall: loader, hints, the text version. */
+  chrome: {
+    cream: string;
+    ink: string;
+    inkSoft: string;
+    line: string;
+    accent: string;
+    scheme: "light" | "dark";
+  };
+}
+
+const plaster: Room = {
+  name: "plaster",
+  background: "#ddd4c2",
+  fog: 0xd7cdb9,
+  plaster: {
+    base: "#cbbfab",
+    light: "rgba(255,248,232,.10)",
+    dark: "rgba(120,100,70,.10)",
+    cracks: "rgba(90,72,50,.15)",
+    seams: true,
+    seam: "rgba(80,64,44,.38)",
+    seamLight: "rgba(255,248,230,.30)",
+    bump: 0.4,
+  },
+  floor: { kind: "oak", base: "#a57f55", tint: 0xa8825c },
+  skirting: 0xe9e1cf,
+  contact: "40,30,18",
+  light: {
+    sky: 0xfff4e2,
+    ground: 0x8d7d64,
+    ambient: 0.8,
+    key: 0xfff1dc,
+    keyStrength: 0.95,
+    fill: 0xffd9ad,
+    fillStrength: 0.22,
+    exposure: 1.04,
+  },
+  dust: { color: 0xfff3dd, opacity: 0.35 },
+  paper: { stock: "classic", ink: "#463a2b", paint: "#6d5334", pin: 0x9a7b3f },
+  chrome: {
+    cream: "#efe9df",
+    ink: "#2b241c",
+    inkSoft: "#6f655a",
+    line: "#e2dacc",
+    accent: "#d97a3f",
+    scheme: "light",
+  },
+};
+
+/* A gallery: a white wall that was painted, not built; concrete
+   underfoot; even, cool light; steel where the plaster had brass. */
+const studio: Room = {
+  name: "studio",
+  background: "#e6e5e1",
+  fog: 0xdedcd8,
+  plaster: {
+    base: "#e9e7e2",
+    light: "rgba(255,255,255,.14)",
+    dark: "rgba(110,110,105,.07)",
+    cracks: "rgba(0,0,0,0)",
+    seams: false,
+    seam: "rgba(0,0,0,0)",
+    seamLight: "rgba(0,0,0,0)",
+    bump: 0.18,
+  },
+  floor: { kind: "concrete", base: "#a3a29e", tint: 0xb9b7b2 },
+  skirting: 0xf3f2ef,
+  contact: "36,36,34",
+  light: {
+    sky: 0xf6f8fc,
+    ground: 0x8e9197,
+    ambient: 0.92,
+    key: 0xf8f9fd,
+    keyStrength: 0.88,
+    fill: 0xe8eef7,
+    fillStrength: 0.2,
+    exposure: 1.06,
+  },
+  dust: { color: 0xffffff, opacity: 0.16 },
+  paper: { stock: "classic", ink: "#2f3137", paint: "#2b2f36", pin: 0x5d6570 },
+  chrome: {
+    cream: "#f3f2ef",
+    ink: "#26282c",
+    inkSoft: "#6a6d73",
+    line: "#dedcd7",
+    accent: "#2f5d8a",
+    scheme: "light",
+  },
+};
+
+/* After dark: a charcoal wall under one warm spot, the boards gone
+   dark with it, dust caught in the beam. Headings are chalk, because
+   ochre on charcoal is nothing. Paper stays paper — a white card on a
+   dark wall is the most legible thing in the room. */
+const night: Room = {
+  name: "night",
+  background: "#1e1c1a",
+  fog: 0x23211e,
+  plaster: {
+    base: "#3b3936",
+    light: "rgba(255,240,220,.06)",
+    dark: "rgba(0,0,0,.14)",
+    cracks: "rgba(0,0,0,.22)",
+    seams: true,
+    seam: "rgba(0,0,0,.4)",
+    seamLight: "rgba(255,240,220,.07)",
+    bump: 0.5,
+  },
+  floor: { kind: "oak", base: "#5a4633", tint: 0x6b5440 },
+  skirting: 0x2f2c29,
+  contact: "0,0,0",
+  light: {
+    sky: 0xfff0dd,
+    ground: 0x1a1714,
+    ambient: 0.34,
+    key: 0xffd9a8,
+    keyStrength: 1.35,
+    fill: 0xffb877,
+    fillStrength: 0.26,
+    exposure: 1.0,
+  },
+  dust: { color: 0xffe7c4, opacity: 0.5 },
+  paper: { stock: "classic", ink: "#3a2f22", paint: "#efe3c6", pin: 0xc9a25a },
+  chrome: {
+    cream: "#1e1c1a",
+    ink: "#efe9df",
+    inkSoft: "#a89e90",
+    line: "#3a352f",
+    accent: "#e28b5c",
+    scheme: "dark",
+  },
+};
+
+const BY_NAME: Record<RoomName, Room> = { plaster, studio, night };
+
+export const isRoomName = (v: unknown): v is RoomName =>
+  typeof v === "string" && (ROOMS as readonly string[]).includes(v);
+
+/** The room called `name` — plaster, if there is no such room. */
+export const roomNamed = (name?: RoomName): Room =>
+  (name && BY_NAME[name]) || plaster;
+
+/* The room the deck is being built in. Set once, before any card is
+   filled in or any surface drawn, and read by whatever needs a colour
+   the room decides. */
+let current: Room = plaster;
+export const currentRoom = () => current;
+export function setRoom(room: Room) {
+  current = room;
+}
+
+/** Colour the chrome around the wall — loader, hint, the text version —
+    to match the room. The tokens live in base.css; this overrides them
+    on the root so every stylesheet that reads them follows. */
+export function applyChrome(room: Room) {
+  const s = document.documentElement.style;
+  const c = room.chrome;
+  s.setProperty("--cream", c.cream);
+  s.setProperty("--ink", c.ink);
+  s.setProperty("--ink-soft", c.inkSoft);
+  s.setProperty("--line", c.line);
+  s.setProperty("--accent", c.accent);
+  s.setProperty("color-scheme", c.scheme);
+  document.documentElement.dataset.room = room.name;
+}

@@ -15,6 +15,7 @@ import { PAPERS } from "../textures/papers.js";
 import { photoRatio } from "../textures/photo.js";
 import { imageFor } from "./images.js";
 import { complain } from "./complaints.js";
+import { currentRoom, isRoomName, roomNamed, setRoom, ROOMS } from "../rooms.js";
 import type { Beat, CardType, Deck, Promise_, Slide } from "./types.js";
 
 /* A card mid-read: the author's object with the shorthands resolved,
@@ -192,6 +193,17 @@ export function normalizeDeck(config: Deck) {
   if (!Array.isArray(config.slides))
     throw new DeckError("deck", "`slides` must be an array");
 
+  /* The room first: every card filled in below takes its paper, its
+     pin and its ink from it. An unknown room is a complaint, not a
+     refusal — the deck hangs in plaster and says so. */
+  if (config.room != null && !isRoomName(config.room))
+    complain(
+      "deck",
+      `unknown room ${JSON.stringify(config.room)}. Hanging it in plaster. Valid: ${ROOMS.join(", ")}`,
+    );
+  const room = roomNamed(isRoomName(config.room) ? config.room : undefined);
+  setRoom(room);
+
   const rng = makeRng(
     config.seed != null ? hashSeed(String(config.seed)) : hashSeed(config.title || "storyboard"),
   );
@@ -219,6 +231,7 @@ export function normalizeDeck(config: Deck) {
   return {
     title: config.title || "Storyboard",
     subtitle: config.subtitle || "",
+    room,
     promises,
     story,
     images: [...images],
@@ -268,10 +281,11 @@ const lerp = (t: number, a: number, b: number) => a + t * (b - a);
  */
 export function cardDefaults(type: CardType) {
   const mural = type === "mural";
+  const room = currentRoom();
   return {
-    paper: "classic" as Promise_["paper"],
+    paper: room.paper.stock as Promise_["paper"],
     attach: (type === "photo" ? "tape" : "pin") as Promise_["attach"],
-    pinColor: 0x9a7b3f,
+    pinColor: room.paper.pin,
     font: (mural ? "serif" : "hand") as Promise_["font"],
     doodle: "none" as Promise_["doodle"],
     w: WIDTH[type],

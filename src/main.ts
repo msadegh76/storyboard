@@ -5,8 +5,9 @@
    linked from index.html so they block the first paint. */
 
 import { el } from "./util.js";
-import { fitCamera } from "./scene/stage.js";
-import "./scene/room.js";
+import { fitCamera, lightRoom } from "./scene/stage.js";
+import { buildRoom } from "./scene/room.js";
+import { applyChrome } from "./rooms.js";
 import "./scene/pointer.js";
 import { buildCard } from "./scene/card.js";
 import { loop } from "./scene/loop.js";
@@ -49,6 +50,11 @@ try {
 }
 
 document.title = deck.title;
+/* The room, before anything is drawn in it: the chrome around the wall
+   takes its colours, then the wall, the floor and the lights. */
+applyChrome(deck.room);
+buildRoom(deck.room);
+lightRoom(deck.room);
 /* A card that fell back to a default still presents, but the author
    should not have to be watching the console to find out. On a dev
    server it is said on the page; a built deck keeps it to the console,

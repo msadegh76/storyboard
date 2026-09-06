@@ -4,6 +4,7 @@
    springs the real camera toward it every frame. */
 
 import { THREE } from "../vendor.js";
+import type { Room } from "../rooms.js";
 
 const found = document.getElementById("scene");
 if (!(found instanceof HTMLCanvasElement))
@@ -73,7 +74,8 @@ export function fitCamera(rightInset = inset) {
    four camera positions before and after and solving for the exposure
    that put every one of them back within 2% of its old luminance. */
 const LIGHT = 4.1;
-scene.add(new THREE.HemisphereLight(0xfff4e2, 0x8d7d64, 0.8 * LIGHT)); // 0.8
+const hemi = new THREE.HemisphereLight(0xfff4e2, 0x8d7d64, 0.8 * LIGHT); // 0.8
+scene.add(hemi);
 const key = new THREE.DirectionalLight(0xfff1dc, 0.95 * LIGHT); // 0.95
 key.position.set(14, 18, 26);
 key.castShadow = true;
@@ -90,3 +92,18 @@ scene.add(key);
 const fill = new THREE.PointLight(0xffd9ad, 0.22 * LIGHT, 90, 1); // 0.22
 fill.position.set(-18, 4, 20);
 scene.add(fill);
+
+/** Light the scene the way the room is lit — see rooms.ts. The lights
+    above are the plaster room's; a deck that hangs elsewhere recolours
+    them here, once, before the wall is built. */
+export function lightRoom(room: Room) {
+  hemi.color.set(room.light.sky);
+  hemi.groundColor.set(room.light.ground);
+  hemi.intensity = room.light.ambient * LIGHT;
+  key.color.set(room.light.key);
+  key.intensity = room.light.keyStrength * LIGHT;
+  fill.color.set(room.light.fill);
+  fill.intensity = room.light.fillStrength * LIGHT;
+  renderer.toneMappingExposure = room.light.exposure;
+  scene.background = new THREE.Color(room.background);
+}

@@ -218,6 +218,26 @@ presents before its screenshots have landed.
 | `subtitle` | the line under it while the wall builds |
 | `seed` | anything; changes how the cards are tilted |
 | `overview` | `"both"` (default), `"start"`, `"end"`, or `"none"` — the wide shots that open and close the walk |
+| `room` | `"plaster"` (default), `"studio"` or `"night"` — see [The rooms](#the-rooms) |
+
+### The rooms
+
+A deck hangs in a room, and a room is chosen whole: the wall, the
+floor, the light, and what paper, ink and paint a card gets when you
+say nothing. `room:` on the deck picks one.
+
+| Room | The place |
+| --- | --- |
+| `plaster` | warm plaster and oak boards under one warm light — the default |
+| `studio` | a white gallery wall, concrete underfoot, even cool light; steel pins and cool ink |
+| `night` | a charcoal wall under one warm spot, dust in the beam; headings in chalk, and it doubles as a dark mode |
+
+There is deliberately no colour picker. A room is one coherent place;
+the cards, the shadows and the light only look right together. Every
+field on a card still overrides the room — a `paper:` or a `paint:`
+you set is kept whatever the room. The one exception is a `paint:` darker
+than a dark wall — nobody can write charcoal on charcoal, so in `night`
+such a heading is written in chalk instead.
 
 ### When you want it by hand
 
