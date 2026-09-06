@@ -15,6 +15,10 @@ import { deckEditor } from "./tools/deck-editor.js";
 
 export default {
   base: "./",
+  /* The port is 5173 unless the environment says otherwise — a tool
+     that starts the server beside another one hands it a free port in
+     PORT, and Vite would otherwise pick its own and tell nobody. */
+  server: { port: Number(process.env.PORT) || 5173 },
   build: {
     /* Two pages: the wall, and the presenter window that opens beside
        it. They share nothing but a BroadcastChannel, which is the point
