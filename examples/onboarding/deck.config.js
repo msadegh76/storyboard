@@ -1,4 +1,4 @@
-/* Getting started — the tour of Promise Wall, given on a wall.
+/* Getting started — the tour of Storyboard, given on a wall.
 
    Every feature the wall has, one stop each, with a picture of the
    real thing beside the words: the keys, the presenter window, the
@@ -22,7 +22,7 @@ export default defineDeck({
     --------------------------------------------------------------- */
     {
       mural: "Getting started",
-      sub: "Promise Wall, explained on a wall",
+      sub: "Storyboard, explained on a wall",
       paint: "#3b3527",
       say: "This deck is the tour. Walk it with the arrow keys; every stop shows one thing the wall can do, with a picture of it.",
     },

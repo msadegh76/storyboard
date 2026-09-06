@@ -79,7 +79,7 @@ function openPresenter() {
   }
   window_ = open(
     "present.html",
-    "promise-wall-presenter",
+    "storyboard-presenter",
     "width=1000,height=700",
   );
 }

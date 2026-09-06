@@ -10,7 +10,7 @@ export function ctx2d(c: HTMLCanvasElement): Ctx {
   const ctx = c.getContext("2d");
   if (!ctx)
     throw new Error(
-      "promise-wall: this browser would not give us a 2D canvas context",
+      "storyboard: this browser would not give us a 2D canvas context",
     );
   return ctx;
 }

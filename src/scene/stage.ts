@@ -7,7 +7,7 @@ import { THREE } from "../vendor.js";
 
 const found = document.getElementById("scene");
 if (!(found instanceof HTMLCanvasElement))
-  throw new Error('promise-wall: index.html needs a <canvas id="scene">');
+  throw new Error('storyboard: index.html needs a <canvas id="scene">');
 export const canvas = found;
 export const renderer = new THREE.WebGLRenderer({
   canvas,

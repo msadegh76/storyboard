@@ -12,7 +12,7 @@
 import { defineDeck } from "../../src/deck/types.js";
 
 export default defineDeck({
-  title: "Promise Wall",
+  title: "Storyboard",
   subtitle: "pinning the deck to the wall…",
 
   slides: [
@@ -20,7 +20,7 @@ export default defineDeck({
        rather than paper pinned to it. Use them as section headings —
        they never lift, sway, or cast a shadow. */
     {
-      mural: "Promise Wall",
+      mural: "Storyboard",
       sub: "a slide deck you can walk",
       paint: "#3b3527",
       say: "Wait here a moment. Let the room take in that it is a wall, not a slide.",

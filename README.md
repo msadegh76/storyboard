@@ -1,4 +1,4 @@
-# Promise Wall
+# Storyboard
 
 A slide deck presented as a gallery wall in 3D. Index cards pinned to
 plaster, headings painted straight onto the wall, lit by a single key
@@ -6,10 +6,6 @@ light with dust in the air — walked with the arrow keys.
 
 Built with [three.js](https://threejs.org) and [GSAP](https://gsap.com).
 No framework.
-
-<!-- Drop the capture in and this shows the wall in motion, which is the
-     only way to convey it. See docs/README.md for what to record. -->
-![The wall, walked end to end](docs/wall.gif)
 
 ## Run it
 

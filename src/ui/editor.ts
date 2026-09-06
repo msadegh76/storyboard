@@ -461,12 +461,12 @@ const isPicture = (f: File | undefined): f is File =>
    with the chance to undo what was just taken away. Per tab, and gone
    when the tab is. */
 const KEY = {
-  open: "promise-wall:editor",
-  pick: "promise-wall:editor:pick",
-  kind: "promise-wall:editor:kind",
-  where: "promise-wall:editor:where",
-  sections: "promise-wall:editor:sections",
-  undo: "promise-wall:editor:undo",
+  open: "storyboard:editor",
+  pick: "storyboard:editor:pick",
+  kind: "storyboard:editor:kind",
+  where: "storyboard:editor:where",
+  sections: "storyboard:editor:sections",
+  undo: "storyboard:editor:undo",
 };
 const remember = (k: string, v: string) => {
   try {
@@ -1545,7 +1545,7 @@ function toggle() {
 /** Open the editor with `e`. Dev only — see the note at the top. */
 export function initEditor() {
   // a key nobody was told about is a key nobody presses
-  console.info("promise-wall: press e to edit this slide");
+  console.info("storyboard: press e to edit this slide");
   const hint = document.getElementById("hint");
   if (hint) {
     const dot = h("em", "", "·");

@@ -34,7 +34,7 @@ function fail(err: unknown) {
   const sub = el("loader")?.querySelector<HTMLElement>(".sub");
   if (sub) {
     const msg = err instanceof Error ? err.message : String(err);
-    sub.textContent = msg.replace(/^promise-wall: /, "");
+    sub.textContent = msg.replace(/^storyboard: /, "");
     sub.style.color = "#b0472c";
   }
 }

@@ -113,8 +113,8 @@ export function buildTranscript(
   root.id = "transcript";
 
   /* A deck that opens on a painted heading of its own name would
-     otherwise be announced twice over — "Promise Wall, heading level
-     one. Promise Wall, heading level two." */
+     otherwise be announced twice over — "Storyboard, heading level
+     one. Storyboard, heading level two." */
   const opener = promises.find((p) => p.slide === 1 && p.title);
   if (opener?.title?.trim().toLowerCase() !== title.trim().toLowerCase())
     root.append(el("h1", title));

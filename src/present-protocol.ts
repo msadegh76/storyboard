@@ -8,7 +8,7 @@
    Which is exactly what happened before this file existed. */
 
 /** Same origin, one name; no server is involved in any of it. */
-export const CHANNEL = "promise-wall";
+export const CHANNEL = "storyboard";
 
 /** One stop, as the presenter window is told about it. */
 export interface PresentStop {

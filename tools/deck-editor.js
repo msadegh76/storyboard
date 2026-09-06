@@ -159,7 +159,7 @@ export function deckEditor() {
   };
 
   return {
-    name: "promise-wall:deck-editor",
+    name: "storyboard:deck-editor",
     apply: "serve",
 
     hotUpdate({ file }) {

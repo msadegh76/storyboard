@@ -56,7 +56,7 @@ export { deckComplaints } from "./complaints.js";
 
 class DeckError extends Error {
   constructor(where: string, msg: string) {
-    super(`promise-wall: ${where} — ${msg}`);
+    super(`storyboard: ${where} — ${msg}`);
     this.name = "DeckError";
   }
 }
@@ -193,7 +193,7 @@ export function normalizeDeck(config: Deck) {
     throw new DeckError("deck", "`slides` must be an array");
 
   const rng = makeRng(
-    config.seed != null ? hashSeed(String(config.seed)) : hashSeed(config.title || "promise-wall"),
+    config.seed != null ? hashSeed(String(config.seed)) : hashSeed(config.title || "storyboard"),
   );
 
   const promises: Promise_[] = [];
@@ -217,7 +217,7 @@ export function normalizeDeck(config: Deck) {
   if (ends === "both" || ends === "end") story.push({ overview: true });
 
   return {
-    title: config.title || "Promise Wall",
+    title: config.title || "Storyboard",
     subtitle: config.subtitle || "",
     promises,
     story,

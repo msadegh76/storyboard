@@ -19,7 +19,7 @@ const complaints: string[] = [];
 export const deckComplaints = () => complaints.slice();
 
 export function complain(where: string, msg: string) {
-  const line = `promise-wall: ${where} — ${msg}`;
+  const line = `storyboard: ${where} — ${msg}`;
   complaints.push(line);
   console.warn(line);
 }
