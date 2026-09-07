@@ -416,6 +416,8 @@ interface Written {
   file: string;
   slides: number;
   note: string;
+  /** For `remove`: the text taken out, comment and all, laid flush left. */
+  removed?: string;
 }
 
 /* A picture, handed to the server to keep under public/slides/. What
@@ -800,11 +802,11 @@ async function reshape(
        nothing. The wall would then sit on a deck that is not the one
        on disk. So: if the reload has not come in a moment, make it. */
     setTimeout(() => location.reload(), 1500);
-    return true;
+    return out;
   } catch (err) {
     reloading = false;
     tell(String(err instanceof Error ? err.message : err), true);
-    return false;
+    return null;
   }
 }
 
@@ -895,7 +897,7 @@ function removeCard(ps: Promise_[], at: number) {
   void reshape("save", slide, stopSource(ps.filter((_, i) => i !== at)));
 }
 
-function removeSlide(ps: Promise_[]) {
+async function removeSlide(ps: Promise_[]) {
   const slide = ps[0]?.slide ?? 0;
   const undo: Undo = {
     what: "slide",
@@ -903,8 +905,12 @@ function removeSlide(ps: Promise_[]) {
     block: stopSource(ps),
     label: `Slide ${slide} deleted`,
   };
+  // remembered before the write, in case the page is rebuilt before
+  // the answer is read — then replaced by what was actually taken out,
+  // so the undo puts back the author's own text, comment and all
   remember(KEY.undo, JSON.stringify(undo));
-  void reshape("remove", slide);
+  const out = await reshape("remove", slide);
+  if (out?.removed) remember(KEY.undo, JSON.stringify({ ...undo, block: out.removed }));
 }
 
 let undoT: ReturnType<typeof setTimeout> | undefined;
@@ -1558,6 +1564,16 @@ export function initEditor() {
   if (picked) {
     pendingPick = Number(picked) || 0;
     remember(KEY.pick, "");
+  }
+
+  /* This module arrives by dynamic import, and the walk does not wait
+     for it: on a busy server the deck can already be standing on its
+     slide by now, and the move that would have applied the pending pick
+     has come and gone. If so, pick now — otherwise the panel opens on
+     the first card, and "Remove this card" takes the wrong one. */
+  if (pendingPick != null && storyCards().length) {
+    pick = pendingPick;
+    pendingPick = null;
   }
 
   if (recall(KEY.open) === "1") toggle();

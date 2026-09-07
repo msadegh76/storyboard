@@ -20,6 +20,7 @@ import {
   insertSlide,
   removeSlide,
   moveSlide,
+  slideText,
 } from "./deck-source.js";
 
 /* Which file actually holds the slides.
@@ -195,7 +196,7 @@ export function deckEditor() {
             const before = slideSpans(src).spans.length;
             const at = Number(body.slide) - 1; // slides are 1-based on the wall
 
-            let next, note;
+            let next, note, removed;
             if (req.url === "/save") {
               check(body.block);
               next = replaceSlide(src, at, body.block);
@@ -214,6 +215,10 @@ export function deckEditor() {
               next = insertSlide(base, at, body.block);
               note = at < 0 ? "slide added at the front" : `slide added after ${at + 1}`;
             } else if (req.url === "/remove") {
+              // what is taken out goes back in the answer, so an undo can
+              // put back exactly that: the comment above it, the order the
+              // author wrote the fields in, all of it
+              removed = slideText(src, at);
               next = removeSlide(src, at);
               note = `slide ${at + 1} removed`;
             } else if (req.url === "/move") {
@@ -246,6 +251,7 @@ export function deckEditor() {
               file: path.relative(root, file),
               slides: after,
               note,
+              removed,
             });
           });
         } catch (err) {

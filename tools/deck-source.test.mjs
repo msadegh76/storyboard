@@ -1,5 +1,5 @@
 import {readFileSync} from 'node:fs';
-import {slideSpans, replaceSlide, insertSlide, removeSlide, moveSlide, hasSlides} from './deck-source.js';
+import {slideSpans, replaceSlide, insertSlide, removeSlide, moveSlide, slideText, hasSlides} from './deck-source.js';
 
 /* The decks import defineDeck from TypeScript, which node will not
    resolve — swap it for identity so the object itself can be read. */
@@ -127,6 +127,29 @@ for (const f of ['../examples/hello-wall/deck.config.js','../examples/lighthouse
     ok(`${name}: moving slide 1 to the end and back restores the file`, moveSlide(moveSlide(src, 0, 2), 2, 0) === src);
     ok(`${name}: moving slide 3 to the front and back restores the file`, moveSlide(moveSlide(src, 2, 0), 0, 2) === src);
   }
+}
+
+
+/* A slide owns the comment written directly above it. Taken out, it
+   takes the comment; moved, it takes the comment; and what `slideText`
+   hands back is exactly what putting it back needs — so an undo, or a
+   move there and back, leaves the file as it was, comment and all. */
+{
+  const ok = (label, cond) => { console.log(`   ${cond ? 'ok  ' : 'FAIL'}  ${label}`); if(!cond) fail++; };
+  console.log('\n=== a slide and the comment above it');
+  const src = readFileSync(new URL('../examples/hello-wall/deck.config.js', import.meta.url), 'utf8');
+  const { spans } = slideSpans(src);
+  let backAll = true, movedAll = true;
+  for (let i = 0; i < spans.length; i++) {
+    const text = slideText(src, i);
+    if (insertSlide(removeSlide(src, i), i - 1, text) !== src) { backAll = false; console.log('      not restored: slide', i + 1); }
+    const j = i === spans.length - 1 ? i - 1 : i + 1;
+    if (moveSlide(moveSlide(src, i, j), j, i) !== src) { movedAll = false; console.log('      move there and back changed the file: slide', i + 1); }
+  }
+  ok('every slide of hello-wall, taken out and put back with its text, restores the file byte for byte', backAll);
+  ok('every slide of hello-wall, moved a step and back, restores the file byte for byte', movedAll);
+  ok('the text of slide 2 begins with the comment written above it', /^\s*\/\* The plainest slide/.test(slideText(src, 1)));
+  ok('the text of a slide with no comment above it begins with the slide', /^\{/.test(slideText('export default {\n  slides: [\n    { title: "A" },\n    { title: "B" },\n  ],\n};\n', 1)));
 }
 
 console.log(fail ? `\n${fail} FAILING` : '\nall green');

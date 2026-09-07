@@ -311,9 +311,58 @@ export function moveSlide(src, from, to) {
   if (!span) throw new Error(`deck source: there is no slide ${from + 1}`);
   to = Math.min(Math.max(to, 0), spans.length - 1);
   if (to === from) return src;
-  const block = dedent(src.slice(span.start, span.end));
+  const block = slideText(src, from); // with the comment above it
   // once it is out, "at index `to`" is "after the slide before that"
   return insertSlide(removeSlide(src, from), to - 1, block);
+}
+
+/* Where a slide really begins: a comment written directly above it,
+   with nothing but whitespace between, is about that slide, and goes
+   where it goes. Any number of them, block or line, up to the comma of
+   the slide before (or the array's own bracket). */
+function withComment(src, open, spans, index) {
+  const span = spans[index];
+  let floor = open + 1;
+  if (index > 0) {
+    const comma = src.indexOf(",", spans[index - 1].end);
+    floor = comma < 0 ? spans[index - 1].end : comma + 1;
+  }
+  let start = span.start;
+  for (;;) {
+    let i = start;
+    while (i > floor && /\s/.test(src[i - 1])) i--;
+    if (i <= floor) break;
+    if (src.slice(i - 2, i) === "*/") {
+      const at = src.lastIndexOf("/*", i - 2);
+      if (at < floor) break;
+      start = at;
+      continue;
+    }
+    const ls = src.lastIndexOf("\n", i - 1) + 1;
+    const line = src.slice(Math.max(ls, floor), i);
+    const m = /^(\s*)\/\//.exec(line);
+    if (m) {
+      start = Math.max(ls, floor) + m[1].length;
+      continue;
+    }
+    break;
+  }
+  return start;
+}
+
+/**
+ * The text a slide would take with it: the slide, and the comment
+ * written directly above it, laid flush left. What `removeSlide` takes
+ * out, so that an undo can put back exactly that.
+ *
+ * @param {string} src the deck file
+ * @param {number} index which slide, counting from zero
+ */
+export function slideText(src, index) {
+  const { open, spans } = slideSpans(src);
+  const span = spans[index];
+  if (!span) throw new Error(`deck source: there is no slide ${index + 1}`);
+  return dedent(src.slice(withComment(src, open, spans, index), span.end));
 }
 
 /**
@@ -323,14 +372,15 @@ export function moveSlide(src, from, to) {
  * @param {number} index which slide, counting from zero
  */
 export function removeSlide(src, index) {
-  const { spans } = slideSpans(src);
+  const { open, spans } = slideSpans(src);
   const span = spans[index];
   if (!span) throw new Error(`deck source: there is no slide ${index + 1}`);
   let end = span.end;
   const next = skipTrivia(src, end, true);
   if (src[next] === ",") end = next + 1;
-  // and the line it was sitting on, so no blank gap is left behind
-  let start = span.start;
+  // and the line it was sitting on, so no blank gap is left behind —
+  // along with the comment written above it, which was about it
+  let start = withComment(src, open, spans, index);
   const lineStart = src.lastIndexOf("\n", start - 1) + 1;
   if (!src.slice(lineStart, start).trim()) start = lineStart;
   while (src[end] === " " || src[end] === "\t") end++;
