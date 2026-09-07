@@ -1,5 +1,5 @@
 import {readFileSync} from 'node:fs';
-import {slideSpans, replaceSlide, insertSlide, removeSlide, moveSlide, slideText, hasSlides} from './deck-source.js';
+import {slideSpans, replaceSlide, insertSlide, removeSlide, moveSlide, slideText, setDeckField, hasSlides} from './deck-source.js';
 
 /* The decks import defineDeck from TypeScript, which node will not
    resolve — swap it for identity so the object itself can be read. */
@@ -150,6 +150,29 @@ for (const f of ['../examples/hello-wall/deck.config.js','../examples/lighthouse
   ok('every slide of hello-wall, moved a step and back, restores the file byte for byte', movedAll);
   ok('the text of slide 2 begins with the comment written above it', /^\s*\/\* The plainest slide/.test(slideText(src, 1)));
   ok('the text of a slide with no comment above it begins with the slide', /^\{/.test(slideText('export default {\n  slides: [\n    { title: "A" },\n    { title: "B" },\n  ],\n};\n', 1)));
+}
+
+
+/* The deck's own fields — the room it hangs in — written without
+   disturbing the slides, and taken out again cleanly. */
+{
+  const ok = (label, cond) => { console.log(`   ${cond ? 'ok  ' : 'FAIL'}  ${label}`); if(!cond) fail++; };
+  console.log('\n=== the deck\'s own fields');
+  const src = readFileSync(new URL('../examples/hello-wall/deck.config.js', import.meta.url), 'utf8');
+  const withRoom = setDeckField(src, 'room', '"night"');
+  ok('room is written on its own line above slides', /\n  room: "night",\n  slides: \[/.test(withRoom));
+  ok('and the deck reads it', (await load(withRoom)).room === 'night');
+  const swapped = setDeckField(withRoom, 'room', '"studio"');
+  ok('setting it again swaps the value in place', (await load(swapped)).room === 'studio' && !swapped.includes('"night"'));
+  ok('taking it out restores the file byte for byte', setDeckField(swapped, 'room', null) === src);
+  ok('taking out a field that is not there changes nothing', setDeckField(src, 'room', null) === src);
+  ok('the slides are untouched throughout', JSON.stringify((await load(swapped)).slides) === JSON.stringify((await load(src)).slides));
+  const oneLine = 'export default { title: "T", slides: [ { title: "A" } ] };\n';
+  const oneLineRoom = setDeckField(oneLine, 'room', '"night"');
+  ok('a deck written on one line takes the field before slides', (await load(oneLineRoom)).room === 'night' && setDeckField(oneLineRoom, 'room', null) === oneLine);
+  const tricky = '/* slides: [ ] { */\nexport default defineDeck({\n  // room: "x"\n  title: "slides: [",\n  slides: [\n    { title: "A", text: "room: 1" },\n  ],\n});\n'.replace('defineDeck(', '(');
+  const t2 = setDeckField(tricky, 'room', '"night"');
+  ok('the words in comments and strings do not fool it', (await load(t2)).room === 'night' && setDeckField(t2, 'room', null) === tricky);
 }
 
 console.log(fail ? `\n${fail} FAILING` : '\nall green');

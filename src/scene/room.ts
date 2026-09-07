@@ -38,14 +38,43 @@ export const dustN = 110;
 export const dv: [number, number][] = [];
 export let dust: THREE.Points;
 
+/* Everything the last `buildRoom` put in the scene, so that building
+   another room — the editor letting an author try one — takes the old
+   one down first, textures and all, rather than stacking walls. */
+let built: THREE.Object3D[] = [];
+function takeDown() {
+  for (const o of built) {
+    scene.remove(o);
+    o.traverse((n) => {
+      const m = n as THREE.Mesh;
+      if (!(m as { isMesh?: boolean }).isMesh && !(m as { isPoints?: boolean }).isPoints) return;
+      m.geometry?.dispose();
+      const mats = Array.isArray(m.material) ? m.material : [m.material];
+      for (const mat of mats) {
+        const std = mat as THREE.MeshStandardMaterial;
+        std?.map?.dispose();
+        std?.bumpMap?.dispose();
+        std?.dispose();
+      }
+    });
+  }
+  built = [];
+}
+
 /**
  * Put the room up around the wall's origin, coloured for `room`.
  *
  * The wall is a real architectural wall, not a framed board: it extends
  * far past every camera position so you never see an edge, and meets
- * the floor at the bottom like an actual room.
+ * the floor at the bottom like an actual room. Called again with
+ * another room, it replaces itself.
  */
 export function buildRoom(room: Room) {
+  takeDown();
+  const add = (o: THREE.Object3D) => {
+    scene.add(o);
+    built.push(o);
+  };
   const wallTx = makeWallTexture(room.plaster);
   const ROOM_H = WALL_TOP - FLOOR_Y;
   [wallTx.tex, wallTx.bump].forEach((t) => {
@@ -64,7 +93,7 @@ export function buildRoom(room: Room) {
   );
   wall.position.y = (WALL_TOP + FLOOR_Y) / 2;
   wall.receiveShadow = true;
-  scene.add(wall);
+  add(wall);
   scene.fog = new THREE.Fog(room.fog, 70, 160);
 
   // The floor meeting the wall
@@ -83,7 +112,7 @@ export function buildRoom(room: Room) {
   floor.rotation.x = -Math.PI / 2;
   floor.position.set(0, FLOOR_Y, 55);
   floor.receiveShadow = true;
-  scene.add(floor);
+  add(floor);
 
   // Skirting board along the wall/floor junction
   const skirtMat = new THREE.MeshStandardMaterial({
@@ -98,14 +127,14 @@ export function buildRoom(room: Room) {
   skirt.position.set(0, FLOOR_Y + 0.75, 0.28);
   skirt.castShadow = true;
   skirt.receiveShadow = true;
-  scene.add(skirt);
+  add(skirt);
   const skirtCap = new THREE.Mesh(
     new THREE.BoxGeometry(ROOM_W, 0.22, 0.72),
     skirtMat,
   );
   skirtCap.position.set(0, FLOOR_Y + 1.55, 0.3);
   skirtCap.castShadow = true;
-  scene.add(skirtCap);
+  add(skirtCap);
 
   const aoWall = new THREE.Mesh(
     new THREE.PlaneGeometry(ROOM_W, 4.5),
@@ -116,7 +145,7 @@ export function buildRoom(room: Room) {
     }),
   );
   aoWall.position.set(0, FLOOR_Y + 2.25 + 1.6, 0.05);
-  scene.add(aoWall);
+  add(aoWall);
   const aoFloor = new THREE.Mesh(
     new THREE.PlaneGeometry(ROOM_W, 5),
     new THREE.MeshBasicMaterial({
@@ -127,7 +156,7 @@ export function buildRoom(room: Room) {
   );
   aoFloor.rotation.x = -Math.PI / 2;
   aoFloor.position.set(0, FLOOR_Y + 0.02, 2.5 + 0.55);
-  scene.add(aoFloor);
+  add(aoFloor);
   // faint upper falloff so the wall darkens gently toward the ceiling
   const aoTop = new THREE.Mesh(
     new THREE.PlaneGeometry(ROOM_W, 26),
@@ -139,7 +168,7 @@ export function buildRoom(room: Room) {
     }),
   );
   aoTop.position.set(0, WALL_TOP - 13, 0.05);
-  scene.add(aoTop);
+  add(aoTop);
 
   // Ambient dust
   const dustGeo = new THREE.BufferGeometry();
@@ -162,5 +191,5 @@ export function buildRoom(room: Room) {
       depthWrite: false,
     }),
   );
-  scene.add(dust);
+  add(dust);
 }

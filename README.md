@@ -144,6 +144,9 @@ the same shape, nothing else to keep in sync.
   appears, for a few seconds.
 - **Slides** — or either wide shot — lists every slide. Click one to
   go there; drag it, or use the arrows beside it, to change the order.
+- **Room**, under that list, tries the deck in plaster, studio or
+  night: the wall, the floor and the light are rebuilt around the cards
+  where they hang, and the choice is written into the deck as `room:`.
 
 It is a dev tool: none of it reaches a built deck. The panel calls a
 mural a *heading*, because that is what it is for; the field in the

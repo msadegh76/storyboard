@@ -21,6 +21,7 @@ import {
   removeSlide,
   moveSlide,
   slideText,
+  setDeckField,
 } from "./deck-source.js";
 
 /* Which file actually holds the slides.
@@ -225,6 +226,22 @@ export function deckEditor() {
               const to = Number(body.to) - 1;
               next = moveSlide(src, at, to);
               note = `slide ${at + 1} moved to ${to + 1}`;
+            } else if (req.url === "/deck") {
+              /* The deck's own fields — the room it hangs in. Only the
+                 fields the panel is meant to set, each as a string or
+                 null to take it out; the value goes in as a string
+                 literal, so nothing the browser sends is ever code. */
+              const set = body.set && typeof body.set === "object" ? body.set : {};
+              next = src;
+              const written = [];
+              for (const [key, value] of Object.entries(set)) {
+                if (key !== "room") throw new Error(`the panel may not set ${key}`);
+                if (value != null && typeof value !== "string")
+                  throw new Error(`${key} must be a string, or null to take it out`);
+                next = setDeckField(next, key, value == null ? null : JSON.stringify(value));
+                written.push(key);
+              }
+              note = written.length ? `${written.join(", ")} written` : "nothing to write";
             } else {
               return send(res, 404, { error: `no ${req.url} here` });
             }

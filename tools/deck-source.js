@@ -396,3 +396,118 @@ export function removeSlide(src, index) {
   if (blankBefore && /^[ \t]*\]/.test(after)) return before.slice(0, -1) + after;
   return before + after;
 }
+
+/* ------------------------------------------------------------------
+   The deck's own fields
+------------------------------------------------------------------ */
+
+/* The object the slides array belongs to — the deck itself. Found by
+   walking from the top with the same eye for strings and comments, and
+   remembering every bracket still open when `slides:` is reached: the
+   innermost `{` among them is the deck. */
+function deckObject(src) {
+  const at = slidesArrays(src)[0];
+  if (at == null) throw new Error("deck source: no slides array");
+  const stack = [];
+  let i = 0;
+  while (i < at) {
+    const c = src[i];
+    if (c === '"' || c === "'" || c === "`") {
+      i = skipString(src, i);
+      continue;
+    }
+    if (c === "/" && (src[i + 1] === "/" || src[i + 1] === "*")) {
+      i = skipTrivia(src, i);
+      continue;
+    }
+    if (OPEN[c]) stack.push(i);
+    else if (c === "}" || c === "]" || c === ")") stack.pop();
+    i++;
+  }
+  for (let k = stack.length - 1; k >= 0; k--)
+    if (src[stack[k]] === "{") return { open: stack[k], close: matchBracket(src, stack[k]) };
+  throw new Error("deck source: no object holds the slides");
+}
+
+/* Step over one value at the deck's own depth: a string, a bracketed
+   thing whole, or a bare word, up to the comma that ends it. */
+function skipValue(src, i, close) {
+  while (i < close) {
+    const c = src[i];
+    if (c === '"' || c === "'" || c === "`") {
+      i = skipString(src, i);
+      continue;
+    }
+    if (c === "/" && (src[i + 1] === "/" || src[i + 1] === "*")) {
+      i = skipTrivia(src, i);
+      continue;
+    }
+    if (OPEN[c]) {
+      i = matchBracket(src, i) + 1;
+      continue;
+    }
+    if (c === ",") return i;
+    i++;
+  }
+  return close;
+}
+
+/** The deck's top-level fields: where each key starts, and its value. */
+function deckFields(src) {
+  const { open, close } = deckObject(src);
+  const fields = [];
+  let i = open + 1;
+  while (i < close) {
+    i = skipTrivia(src, i);
+    if (i >= close) break;
+    if (src[i] === ",") {
+      i++;
+      continue;
+    }
+    const m = /^([A-Za-z_$][\w$]*|"[^"]*"|'[^']*')\s*:/.exec(src.slice(i, i + 200));
+    if (!m) {
+      i = skipValue(src, i, close);
+      continue;
+    }
+    const key = m[1].replace(/^["']|["']$/g, "");
+    const valueStart = skipTrivia(src, i + m[0].length);
+    const valueEnd = skipValue(src, valueStart, close);
+    fields.push({ key, start: i, valueStart, valueEnd });
+    i = valueEnd;
+  }
+  return { open, fields };
+}
+
+/**
+ * Set one of the deck's own fields — `room`, say — leaving everything
+ * else as it was. A field that exists has its value swapped in place;
+ * one that does not is written on its own line just above `slides`,
+ * at that line's depth. `null` takes the field out, line and all.
+ *
+ * @param {string} src the deck file
+ * @param {string} key the field
+ * @param {string|null} value its value, as source — `"night"` with the quotes
+ */
+export function setDeckField(src, key, value) {
+  const { open, fields } = deckFields(src);
+  const f = fields.find((f) => f.key === key);
+  if (f) {
+    if (value != null) return src.slice(0, f.valueStart) + value + src.slice(f.valueEnd);
+    let start = f.start;
+    const ls = src.lastIndexOf("\n", start - 1) + 1;
+    if (!src.slice(ls, start).trim()) start = ls;
+    let end = f.valueEnd;
+    if (src[end] === ",") end++;
+    while (src[end] === " " || src[end] === "\t") end++;
+    if (start === ls && src[end] === "\n") end++;
+    return src.slice(0, start) + src.slice(end);
+  }
+  if (value == null) return src;
+  const slides = fields.find((f) => f.key === "slides");
+  if (!slides) return src.slice(0, open + 1) + `\n  ${key}: ${value},` + src.slice(open + 1);
+  const ls = src.lastIndexOf("\n", slides.start - 1) + 1;
+  const lead = src.slice(ls, slides.start);
+  // `slides` sharing its line with something else: squeeze in before it
+  if (lead.trim()) return src.slice(0, slides.start) + `${key}: ${value}, ` + src.slice(slides.start);
+  return src.slice(0, ls) + `${lead}${key}: ${value},\n` + src.slice(ls);
+}

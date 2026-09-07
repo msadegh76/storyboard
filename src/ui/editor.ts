@@ -61,6 +61,17 @@ import {
 } from "../deck/schema.js";
 import { imageFor, loadImages } from "../deck/images.js";
 import { typing, claimPointer } from "./controls.js";
+import { cards } from "../scene/card.js";
+import { buildRoom } from "../scene/room.js";
+import { lightRoom } from "../scene/stage.js";
+import {
+  ROOMS,
+  roomNamed,
+  currentRoom,
+  setRoom,
+  applyChrome,
+  type RoomName,
+} from "../rooms.js";
 import type { CardType, Promise_ } from "../deck/types.js";
 import type { CardGroup } from "../scene/card.js";
 
@@ -1176,6 +1187,7 @@ function renderList() {
     h("p", "ed-hint", "Click a slide to go to it. Drag one — or use the arrows — to put it somewhere else."),
   );
   body.append(slideList());
+  body.append(roomSection());
   foot.append(
     button("+ Add a slide after this one", "ed-go ed-wide", "Add a slide after the one you are on", () => {
       addWhere = "after";
@@ -1183,6 +1195,85 @@ function renderList() {
       render();
     }),
   );
+}
+
+/* ------------------------------------------------------------------
+   The room
+------------------------------------------------------------------ */
+
+const ROOM_WORDS: Record<RoomName, [string, string]> = {
+  plaster: ["Plaster", "Warm plaster and oak boards, under one warm light."],
+  studio: ["Studio", "A white gallery wall, concrete underfoot, cool even light."],
+  night: ["Night", "Charcoal under one warm spot, dust in the beam. A dark mode, too."],
+};
+
+/* Try a room, and keep it. The room is rebuilt around the cards where
+   they hang, and every card is drawn again so what the room decides
+   for it — the paper it is on, the pin, the paint of a heading — comes
+   with it. Then the choice is written into the deck, quietly: the wall
+   already shows it. */
+let changingRoom = false;
+async function changeRoom(name: RoomName) {
+  const was = currentRoom();
+  const room = roomNamed(name);
+  if (room === was || changingRoom) return;
+  changingRoom = true;
+  setRoom(room);
+  applyChrome(room);
+  buildRoom(room);
+  lightRoom(room);
+  for (const g of cards) {
+    const p = g.userData.p;
+    // what the old room had decided, the new one decides instead
+    if (p.paper === was.paper.stock) p.paper = room.paper.stock;
+    if (p.pinColor === was.paper.pin) p.pinColor = room.paper.pin;
+  }
+  for (const g of [...cards]) await redraw(g.userData.p);
+  storyRefresh(true);
+  render();
+  try {
+    const out = await post<Written>("deck", {
+      set: { room: room.name === "plaster" ? null : room.name },
+      quiet: true,
+    });
+    tell(`${out.note} → ${out.file}`);
+  } catch (err) {
+    tell(`Could not save the room: ${err instanceof Error ? err.message : err}`, true);
+  }
+  changingRoom = false;
+}
+
+/* A little picture of each room — its wall, its floor, its light — to
+   choose by, the way the kinds are chosen. */
+function roomSection() {
+  const sec = section("room", "Room", currentRoom().name);
+  const list = h("div", "ed-rooms");
+  list.setAttribute("role", "radiogroup");
+  list.setAttribute("aria-label", "The room the deck hangs in");
+  for (const name of ROOMS) {
+    const room = roomNamed(name);
+    const on = room === currentRoom();
+    const b = h("button", `ed-room${on ? " on" : ""}`);
+    b.type = "button";
+    b.setAttribute("role", "radio");
+    b.setAttribute("aria-checked", String(on));
+    const sw = h("span", "ed-rm");
+    sw.style.setProperty("--wall", room.plaster.base);
+    sw.style.setProperty("--floor", `#${room.floor.tint.toString(16).padStart(6, "0")}`);
+    sw.style.setProperty("--light", `#${room.light.key.toString(16).padStart(6, "0")}`);
+    sw.setAttribute("aria-hidden", "true");
+    const words = h("span");
+    const [title, blurb] = ROOM_WORDS[name];
+    words.append(h("b", "", title), h("small", "", blurb));
+    b.append(sw, words);
+    b.addEventListener("click", () => void changeRoom(name));
+    list.append(b);
+  }
+  sec.append(list);
+  sec.append(
+    h("p", "ed-hint", "A room is chosen whole: the wall, the floor, the light, and what a card gets when you say nothing. Anything you set on a card is kept."),
+  );
+  return sec;
 }
 
 /* The wide shots: nothing to edit, but the whole deck to see and to
@@ -1207,6 +1298,7 @@ function renderOverview() {
     body.append(slideList());
   }
   body.append(h("p", "ed-hint", "You can also drop a picture anywhere on the wall."));
+  body.append(roomSection());
   foot.append(
     button(bare ? "+ Add the first slide" : "+ Add a slide", "ed-go ed-wide", "Add a slide to the deck", () => {
       addWhere = "after";
