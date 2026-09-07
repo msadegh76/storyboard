@@ -235,7 +235,8 @@ export function deckEditor() {
               next = src;
               const written = [];
               for (const [key, value] of Object.entries(set)) {
-                if (key !== "room") throw new Error(`the panel may not set ${key}`);
+                if (!["room", "wall", "floor", "light"].includes(key))
+                  throw new Error(`the panel may not set ${key}`);
                 if (value != null && typeof value !== "string")
                   throw new Error(`${key} must be a string, or null to take it out`);
                 next = setDeckField(next, key, value == null ? null : JSON.stringify(value));

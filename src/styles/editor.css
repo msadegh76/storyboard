@@ -560,6 +560,18 @@
   border-top: 1px solid rgba(0, 0, 0, 0.18);
 }
 
+/* ---- a knob on the room: the tint, and a word on where it stands ---- */
+.ed-knob {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ed-knob-now {
+  flex: 1;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
 /* ---- segmented choices ---- */
 .ed-seg {
   display: grid;

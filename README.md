@@ -147,6 +147,8 @@ the same shape, nothing else to keep in sync.
 - **Room**, under that list, tries the deck in plaster, studio or
   night: the wall, the floor and the light are rebuilt around the cards
   where they hang, and the choice is written into the deck as `room:`.
+  Under the rooms, three knobs — the wall's tint, the floor, the light
+  — do the same for `wall:`, `floor:` and `light:`.
 
 It is a dev tool: none of it reaches a built deck. The panel calls a
 mural a *heading*, because that is what it is for; the field in the
@@ -235,12 +237,20 @@ say nothing. `room:` on the deck picks one.
 | `studio` | a white gallery wall, concrete underfoot, even cool light; steel pins and cool ink |
 | `night` | a charcoal wall under one warm spot, dust in the beam; headings in chalk, and it doubles as a dark mode |
 
-There is deliberately no colour picker. A room is one coherent place;
-the cards, the shadows and the light only look right together. Every
-field on a card still overrides the room — a `paper:` or a `paint:`
-you set is kept whatever the room. The one exception is a `paint:` darker
-than a dark wall — nobody can write charcoal on charcoal, so in `night`
-such a heading is written in chalk instead.
+A room can be turned a little without leaving it:
+
+| Field | Meaning |
+| --- | --- |
+| `wall` | the plaster's tint, as `#rrggbb`. Your hue; its saturation and lightness are held to what still reads as that room's wall |
+| `floor` | `"oak"`, `"concrete"`, or `"none"` — a wall alone, for a page that embeds it |
+| `light` | `"warm"` or `"cool"` |
+
+There is deliberately no free colour picker beyond that. A room is one
+coherent place; the cards, the shadows and the light only look right
+together. Every field on a card still overrides the room — a `paper:`
+or a `paint:` you set is kept whatever the room. The one exception is a
+`paint:` darker than a dark wall — nobody can write charcoal on
+charcoal, so in `night` such a heading is written in chalk instead.
 
 ### When you want it by hand
 

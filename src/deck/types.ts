@@ -8,7 +8,7 @@
    author leaves out, `schema.ts` decides. */
 
 import type { PaperName } from "../textures/papers.js";
-import type { RoomName } from "../rooms.js";
+import type { RoomName, FloorKind, LightKind } from "../rooms.js";
 
 /** How a card is held to the wall. */
 export type Attach = "pin" | "clip" | "tape";
@@ -165,6 +165,12 @@ export interface Deck {
    * and ink a card gets when you say nothing — chosen whole.
    */
   room?: RoomName;
+  /** The wall's tint, `#rrggbb`. Kept within what still reads as plaster. */
+  wall?: string;
+  /** What is underfoot: `"oak"`, `"concrete"`, or `"none"` for a wall alone. */
+  floor?: FloorKind;
+  /** How warm the light is: `"warm"` or `"cool"`. */
+  light?: LightKind;
   /** The stops, in the order they are walked. */
   slides: Slide[];
 }

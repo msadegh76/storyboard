@@ -15,7 +15,16 @@ import { PAPERS } from "../textures/papers.js";
 import { photoRatio } from "../textures/photo.js";
 import { imageFor } from "./images.js";
 import { complain } from "./complaints.js";
-import { currentRoom, isRoomName, roomNamed, setRoom, ROOMS } from "../rooms.js";
+import {
+  currentRoom,
+  isRoomName,
+  resolveRoom,
+  setRoom,
+  ROOMS,
+  FLOORS,
+  LIGHTS,
+  type Knobs,
+} from "../rooms.js";
 import type { Beat, CardType, Deck, Promise_, Slide } from "./types.js";
 
 /* A card mid-read: the author's object with the shorthands resolved,
@@ -201,7 +210,20 @@ export function normalizeDeck(config: Deck) {
       "deck",
       `unknown room ${JSON.stringify(config.room)}. Hanging it in plaster. Valid: ${ROOMS.join(", ")}`,
     );
-  const room = roomNamed(isRoomName(config.room) ? config.room : undefined);
+  const knobs: Knobs = {};
+  if (config.wall != null) {
+    if (/^#[0-9a-f]{6}$/i.test(String(config.wall))) knobs.wall = String(config.wall);
+    else complain("deck", `wall must be a colour like "#e9e2d6", not ${JSON.stringify(config.wall)}. Leaving the wall as it is.`);
+  }
+  if (config.floor != null) {
+    if ((FLOORS as readonly string[]).includes(String(config.floor))) knobs.floor = config.floor;
+    else complain("deck", `unknown floor ${JSON.stringify(config.floor)}. Valid: ${FLOORS.join(", ")}`);
+  }
+  if (config.light != null) {
+    if ((LIGHTS as readonly string[]).includes(String(config.light))) knobs.light = config.light;
+    else complain("deck", `unknown light ${JSON.stringify(config.light)}. Valid: ${LIGHTS.join(", ")}`);
+  }
+  const room = resolveRoom(isRoomName(config.room) ? config.room : undefined, knobs);
   setRoom(room);
 
   const rng = makeRng(

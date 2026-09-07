@@ -76,7 +76,9 @@ export function buildRoom(room: Room) {
     built.push(o);
   };
   const wallTx = makeWallTexture(room.plaster);
-  const ROOM_H = WALL_TOP - FLOOR_Y;
+  // with no floor the wall simply runs on down, past any camera
+  const bare = room.floor.kind === "none";
+  const ROOM_H = WALL_TOP - FLOOR_Y + (bare ? 60 : 0);
   [wallTx.tex, wallTx.bump].forEach((t) => {
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.repeat.set(ROOM_W / WALL_W, ROOM_H / WALL_H);
@@ -91,10 +93,18 @@ export function buildRoom(room: Room) {
       metalness: 0,
     }),
   );
-  wall.position.y = (WALL_TOP + FLOOR_Y) / 2;
+  wall.position.y = (WALL_TOP + FLOOR_Y - (bare ? 60 : 0)) / 2;
   wall.receiveShadow = true;
   add(wall);
   scene.fog = new THREE.Fog(room.fog, 70, 160);
+
+  if (!bare) buildFloor(room, add);
+  buildDust(room, add);
+}
+
+/* The floor meeting the wall: boards or a pour, the skirting along the
+   join, and the contact shading where the two surfaces meet. */
+function buildFloor(room: Room, add: (o: THREE.Object3D) => void) {
 
   // The floor meeting the wall
   const floorTex = makeFloorTexture(room.floor);
@@ -170,7 +180,9 @@ export function buildRoom(room: Room) {
   aoTop.position.set(0, WALL_TOP - 13, 0.05);
   add(aoTop);
 
-  // Ambient dust
+}
+
+function buildDust(room: Room, add: (o: THREE.Object3D) => void) {
   const dustGeo = new THREE.BufferGeometry();
   const dp = new Float32Array(dustN * 3);
   dv.length = 0;

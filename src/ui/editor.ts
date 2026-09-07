@@ -66,11 +66,17 @@ import { buildRoom } from "../scene/room.js";
 import { lightRoom } from "../scene/stage.js";
 import {
   ROOMS,
+  FLOORS,
+  LIGHTS,
   roomNamed,
+  resolveRoom,
+  naturalKnobs,
   currentRoom,
   setRoom,
   applyChrome,
+  type Room,
   type RoomName,
+  type Knobs,
 } from "../rooms.js";
 import type { CardType, Promise_ } from "../deck/types.js";
 import type { CardGroup } from "../scene/card.js";
@@ -1215,9 +1221,10 @@ const ROOM_WORDS: Record<RoomName, [string, string]> = {
 let changingRoom = false;
 async function changeRoom(name: RoomName) {
   const was = currentRoom();
-  const room = roomNamed(name);
-  if (room === was || changingRoom) return;
+  if (name === was.name || changingRoom) return;
   changingRoom = true;
+  // the knobs are the deck's, not the room's: they stay turned
+  const room = resolveRoom(name, was.knobs);
   setRoom(room);
   applyChrome(room);
   buildRoom(room);
@@ -1231,16 +1238,74 @@ async function changeRoom(name: RoomName) {
   for (const g of [...cards]) await redraw(g.userData.p);
   storyRefresh(true);
   render();
+  await writeRoom(room);
+  changingRoom = false;
+}
+
+/* What the deck says about its room, as the file should carry it: the
+   room by name unless it is plaster, and each knob only where it is
+   not what the room has by nature — a deck should not spell out what
+   it would have got anyway. */
+async function writeRoom(room: Room) {
+  const natural = naturalKnobs(room.name);
+  const k = room.knobs;
   try {
     const out = await post<Written>("deck", {
-      set: { room: room.name === "plaster" ? null : room.name },
+      set: {
+        room: room.name === "plaster" ? null : room.name,
+        wall: k.wall ?? null,
+        floor: k.floor && k.floor !== natural.floor ? k.floor : null,
+        light: k.light && k.light !== natural.light ? k.light : null,
+      },
       quiet: true,
     });
     tell(`${out.note} → ${out.file}`);
   } catch (err) {
     tell(`Could not save the room: ${err instanceof Error ? err.message : err}`, true);
   }
-  changingRoom = false;
+}
+
+/* Turn a knob. The wall's tint redraws the headings too, since a dark
+   room's chalk rule reads the wall; a floor or a light touches no card. */
+let knobT: ReturnType<typeof setTimeout> | undefined;
+async function turnKnob(change: Partial<Knobs>) {
+  const was = currentRoom();
+  const knobs: Knobs = { ...was.knobs, ...change };
+  for (const key of Object.keys(knobs) as (keyof Knobs)[]) if (knobs[key] == null) delete knobs[key];
+  const room = resolveRoom(was.name, knobs);
+  setRoom(room);
+  applyChrome(room);
+  buildRoom(room);
+  lightRoom(room);
+  if (change.wall !== undefined)
+    for (const g of [...cards]) if (g.userData.p.type === "mural") await redraw(g.userData.p);
+  storyRefresh(true);
+  render();
+  await writeRoom(room);
+}
+
+/* A knob's row: a name, and the ways it can be set. */
+function knobRow(label: string, control: HTMLElement) {
+  const row = h("div", "ed-f");
+  row.append(h("label", "", label), control);
+  return row;
+}
+function knobSeg<T extends string>(
+  options: readonly T[],
+  names: Record<T, string>,
+  current: T,
+  natural: T,
+  choose: (v: T) => void,
+) {
+  const seg = h("div", "ed-seg");
+  for (const o of options) {
+    const b = h("button", o === current ? "on" : "", names[o]);
+    b.type = "button";
+    if (o === natural) b.title = "What this room has by nature";
+    b.addEventListener("click", () => choose(o));
+    seg.append(b);
+  }
+  return seg;
 }
 
 /* A little picture of each room — its wall, its floor, its light — to
@@ -1272,6 +1337,43 @@ function roomSection() {
   sec.append(list);
   sec.append(
     h("p", "ed-hint", "A room is chosen whole: the wall, the floor, the light, and what a card gets when you say nothing. Anything you set on a card is kept."),
+  );
+
+  /* The knobs: the wall's tint, the floor, the light. Each shows what
+     the room has by nature until it is turned, and can be turned back. */
+  const room = currentRoom();
+  const natural = naturalKnobs(room.name);
+  const preset = roomNamed(room.name);
+
+  const wall = h("div", "ed-knob");
+  const tint = h("input");
+  tint.type = "color";
+  tint.value = room.knobs.wall ?? preset.plaster.base;
+  tint.title = "The wall's tint. It stays plaster whatever you pick.";
+  tint.addEventListener("input", () => {
+    clearTimeout(knobT);
+    knobT = setTimeout(() => void turnKnob({ wall: tint.value }), 250);
+  });
+  wall.append(tint, h("span", "ed-knob-now", room.knobs.wall ? `tinted ${room.plaster.base}` : "the room's own"));
+  if (room.knobs.wall)
+    wall.append(button("Reset", "ed-mini", "Back to the room's own wall", () => void turnKnob({ wall: undefined })));
+  sec.append(knobRow("Wall", wall));
+
+  sec.append(
+    knobRow(
+      "Floor",
+      knobSeg(FLOORS, { oak: "Oak", concrete: "Concrete", none: "None" }, room.knobs.floor ?? natural.floor, natural.floor, (v) =>
+        void turnKnob({ floor: v === natural.floor ? undefined : v }),
+      ),
+    ),
+  );
+  sec.append(
+    knobRow(
+      "Light",
+      knobSeg(LIGHTS, { warm: "Warm", cool: "Cool" }, room.knobs.light ?? natural.light, natural.light, (v) =>
+        void turnKnob({ light: v === natural.light ? undefined : v }),
+      ),
+    ),
   );
   return sec;
 }
