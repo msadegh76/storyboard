@@ -15,7 +15,7 @@
   width: 316px;
   display: flex;
   flex-direction: column;
-  background: rgba(250, 247, 241, 0.95);
+  background: var(--panel);
   backdrop-filter: blur(10px);
   border-left: 1px solid var(--line);
   box-shadow: -12px 0 32px rgba(70, 52, 28, 0.1);
@@ -101,9 +101,9 @@
   gap: 3px;
   width: 100%;
   padding: 12px 10px;
-  border: 1.5px dashed #c9bfae;
+  border: 1.5px dashed color-mix(in srgb, var(--ink-soft) 45%, transparent);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.45);
+  background: color-mix(in srgb, var(--field) 45%, transparent);
   text-align: center;
   color: var(--ink-soft);
 }
@@ -119,7 +119,7 @@
 .ed-drop:hover,
 .ed-drop.over {
   border-color: var(--accent);
-  background: #fff;
+  background: var(--field);
 }
 .ed-drop.busy {
   opacity: 0.6;
@@ -199,7 +199,7 @@
   gap: 6px;
   padding: 10px 14px 12px;
   border-top: 1px solid var(--line);
-  background: rgba(250, 247, 241, 0.98);
+  background: var(--panel);
 }
 .ed-foot .ed-note {
   flex-basis: 100%;
@@ -221,7 +221,7 @@
   padding: 8px 8px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--field) 70%, transparent);
   font-size: 12px;
   color: var(--ink);
 }
@@ -252,10 +252,10 @@
   color: var(--ink-soft) !important;
 }
 .ed-danger {
-  color: #b0472c !important;
+  color: var(--bad) !important;
 }
 .ed-danger:hover {
-  border-color: #b0472c !important;
+  border-color: var(--bad) !important;
 }
 .ed-gone {
   margin-top: 8px;
@@ -275,7 +275,7 @@
   padding: 4px 8px 4px 5px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.6);
+  background: color-mix(in srgb, var(--field) 60%, transparent);
   font-size: 11px;
   color: var(--ink-soft);
 }
@@ -287,7 +287,7 @@
 .ed-chip.on {
   border-color: var(--accent);
   color: var(--ink);
-  background: #fff;
+  background: var(--field);
 }
 
 /* ---- every slide, on the wide shot ---- */
@@ -305,7 +305,7 @@
   gap: 2px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.55);
+  background: color-mix(in srgb, var(--field) 55%, transparent);
 }
 .ed-row.lifting {
   opacity: 0.4;
@@ -316,7 +316,7 @@
 }
 /* the slide the deck is standing on */
 .ed-row.here {
-  background: #fff;
+  background: var(--field);
   border-color: var(--ink-soft);
 }
 .ed-row.here .ed-row-go b {
@@ -431,7 +431,7 @@
   background: linear-gradient(160deg, #b9d3d8, #e8ddc4 60%, #dcc9a3);
 }
 .ed-sw-heading {
-  background: var(--cream);
+  background: #efe9df; /* a picture of plaster, whatever the room */
 }
 .ed-sw-heading i {
   font-family: var(--serif);
@@ -478,7 +478,7 @@
   padding: 8px 10px 8px 8px;
   border: 1px solid var(--line);
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.6);
+  background: color-mix(in srgb, var(--field) 60%, transparent);
   color: var(--ink);
 }
 .ed-kind:hover {
@@ -487,7 +487,7 @@
 .ed-kind.on {
   border-color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent);
-  background: #fff;
+  background: var(--field);
 }
 .ed-kind b {
   display: block;
@@ -516,7 +516,7 @@
   padding: 7px 10px 7px 7px;
   border: 1px solid var(--line);
   border-radius: 9px;
-  background: rgba(255, 255, 255, 0.5);
+  background: color-mix(in srgb, var(--field) 50%, transparent);
   color: var(--ink);
 }
 .ed-room:hover {
@@ -573,7 +573,7 @@
   padding: 6px 4px;
   border: 0;
   border-right: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.55);
+  background: color-mix(in srgb, var(--field) 55%, transparent);
   font-size: 12px;
   color: var(--ink-soft);
 }
@@ -661,7 +661,7 @@
   padding: 6px 8px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fff;
+  background: var(--field);
   font: inherit;
   font-size: 13px;
   color: var(--ink);
@@ -672,7 +672,7 @@
 }
 .ed-f input::placeholder,
 .ed-f textarea::placeholder {
-  color: #b3a998;
+  color: color-mix(in srgb, var(--ink-soft) 70%, transparent);
 }
 .ed-f input:focus,
 .ed-f select:focus,
@@ -688,7 +688,7 @@
   padding: 2px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fff;
+  background: var(--field);
   cursor: pointer;
 }
 .ed-flag {
@@ -725,7 +725,7 @@
   font-size: 12px;
 }
 .ed-note.bad {
-  color: #b0472c;
+  color: var(--bad);
 }
 
 /* while a card is being carried */

@@ -64,6 +64,10 @@ export interface Room {
     inkSoft: string;
     line: string;
     accent: string;
+    /** The panel's surface, a field's surface, and the colour of a warning. */
+    panel: string;
+    field: string;
+    bad: string;
     scheme: "light" | "dark";
   };
 }
@@ -103,6 +107,9 @@ const plaster: Room = {
     inkSoft: "#6f655a",
     line: "#e2dacc",
     accent: "#d97a3f",
+    panel: "rgba(250, 247, 241, 0.95)",
+    field: "#ffffff",
+    bad: "#b0472c",
     scheme: "light",
   },
 };
@@ -144,6 +151,9 @@ const studio: Room = {
     inkSoft: "#6a6d73",
     line: "#dedcd7",
     accent: "#2f5d8a",
+    panel: "rgba(247, 247, 245, 0.95)",
+    field: "#ffffff",
+    bad: "#b0472c",
     scheme: "light",
   },
 };
@@ -187,6 +197,9 @@ const night: Room = {
     inkSoft: "#a89e90",
     line: "#3a352f",
     accent: "#e28b5c",
+    panel: "rgba(33, 30, 27, 0.95)",
+    field: "#2b2825",
+    bad: "#e07a5f",
     scheme: "dark",
   },
 };
@@ -220,6 +233,9 @@ export function applyChrome(room: Room) {
   s.setProperty("--ink-soft", c.inkSoft);
   s.setProperty("--line", c.line);
   s.setProperty("--accent", c.accent);
+  s.setProperty("--panel", c.panel);
+  s.setProperty("--field", c.field);
+  s.setProperty("--bad", c.bad);
   s.setProperty("color-scheme", c.scheme);
   document.documentElement.dataset.room = room.name;
 }

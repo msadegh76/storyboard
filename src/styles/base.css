@@ -5,6 +5,11 @@
   --ink-soft: #6f655a;
   --accent: #d97a3f;
   --line: #e2dacc;
+  /* the surfaces the panel and the pills sit on, and the colour of a
+     warning — set by the room, like the rest; see rooms.ts */
+  --panel: rgba(250, 247, 241, 0.95);
+  --field: #ffffff;
+  --bad: #b0472c;
   --sans: "Inter", system-ui, sans-serif;
   --serif: "Cormorant Garamond", Georgia, serif;
   --hand: "Caveat", cursive;
