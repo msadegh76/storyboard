@@ -1317,7 +1317,8 @@ function roomSection() {
   list.setAttribute("aria-label", "The room the deck hangs in");
   for (const name of ROOMS) {
     const room = roomNamed(name);
-    const on = room === currentRoom();
+    // by name: the room in use is a resolved copy, never the preset itself
+    const on = name === currentRoom().name;
     const b = h("button", `ed-room${on ? " on" : ""}`);
     b.type = "button";
     b.setAttribute("role", "radio");
