@@ -20,6 +20,7 @@
    unavailable. */
 
 import type { Beat, Promise_ } from "../deck/types.js";
+import { resolveImage } from "../deck/images.js";
 
 const el = <K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -74,7 +75,7 @@ function cardToDom(p: Promise_): HTMLElement {
   if (p.image) {
     if (p.caption) box.append(el("p", p.caption));
     const a = el("a", p.title ?? p.caption ?? p.text ?? p.image);
-    a.href = p.image;
+    a.href = resolveImage(p.image);
     const line = el("p");
     line.append("Picture: ", a);
     box.append(line);

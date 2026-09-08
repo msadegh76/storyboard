@@ -2,7 +2,11 @@
 
    Every module below is imported for its effect on the scene, in the
    order the wall is assembled. The styles are not among them — they are
-   linked from index.html so they block the first paint. */
+   linked from index.html so they block the first paint.
+
+   The deck itself comes from deck/source.ts: the module beside this
+   file, or the JSON a host wrote into the page. Nothing after that
+   line knows which. */
 
 import { el } from "./util.js";
 import { fitCamera, lightRoom } from "./scene/stage.js";
@@ -16,12 +20,12 @@ import { setDeck, STORY, promises } from "./deck/state.js";
 import { loadImages, releaseImages } from "./deck/images.js";
 import { resolveStory, storyStart, storyReframe } from "./deck/story.js";
 import { placeCards, spaceOutCards } from "./deck/layout.js";
+import { loadSource, type DeckSource } from "./deck/source.js";
 import { initControls } from "./ui/controls.js";
 import { initReveal } from "./ui/reveal.js";
 import { initPresent } from "./ui/present.js";
 import { buildTranscript } from "./ui/transcript.js";
 import { initDebug } from "./debug.js";
-import config from "../deck.config.js";
 
 addEventListener("resize", () => {
   fitCamera();
@@ -40,31 +44,16 @@ function fail(err: unknown) {
   }
 }
 
-let deck: ReturnType<typeof normalizeDeck>;
-try {
-  deck = normalizeDeck(config);
-  setDeck(deck);
-} catch (err) {
-  fail(err);
-  throw err;
-}
-
-document.title = deck.title;
-/* The room, before anything is drawn in it: the chrome around the wall
-   takes its colours, then the wall, the floor and the lights. */
-applyChrome(deck.room);
-buildRoom(deck.room);
-lightRoom(deck.room);
 /* A card that fell back to a default still presents, but the author
-   should not have to be watching the console to find out. On a dev
-   server it is said on the page; a built deck keeps it to the console,
-   because by then it is being shown to an audience.
+   should not have to be watching the console to find out. Wherever the
+   deck can be edited it is said on the page; a deck being shown keeps
+   it to the console, because by then there is an audience.
 
    Shown once the pictures have been fetched, not as soon as the deck is
    read: a picture that never arrives is the complaint an author is most
    likely to have, and it is only known then. */
-function showComplaints() {
-  if (!import.meta.env.DEV) return;
+function showComplaints(source: DeckSource) {
+  if (!import.meta.env.DEV && !source.editable) return;
   const notes = deckComplaints();
   if (!notes.length) return;
   const box = document.createElement("div");
@@ -74,54 +63,93 @@ function showComplaints() {
   document.body.append(box);
 }
 
-/* The wall needs fonts and pictures before it can be built; the words
-   do not. Publishing them first means the deck is readable — and
-   crawlable — even if WebGL never comes up at all. */
-buildTranscript(deck.title, STORY, promises);
+/* On a host, the one thing added over a published wall: the way back
+   into it, for whoever owns it. Everyone else sees the wall alone. */
+function offerEdit(source: DeckSource) {
+  const to = source.hosted?.editUrl;
+  if (!to || source.editable) return;
+  const a = document.createElement("a");
+  a.id = "edit-pill";
+  a.href = to;
+  a.textContent = "Edit";
+  a.title = "Open the editor on this deck";
+  el("app-root")?.append(a);
+}
 
-const loader = el("loader");
-const mark = loader?.querySelector(".mark");
-if (mark) mark.innerHTML = `${deck.title}<i>&nbsp;•</i>`;
-const sub = loader?.querySelector(".sub");
-if (sub && deck.subtitle) sub.textContent = deck.subtitle;
+function boot(source: DeckSource) {
+  let deck: ReturnType<typeof normalizeDeck>;
+  try {
+    deck = normalizeDeck(source.deck);
+    setDeck(deck);
+  } catch (err) {
+    fail(err);
+    throw err;
+  }
 
-/* The handwriting has to be measurable before a note can be laid out,
-   so the wall waits — but not forever, and not on a slow connection. */
-const fontWait = Promise.race([
-  Promise.all([
-    document.fonts.load("600 40px Caveat"),
-    document.fonts.load("600 40px 'Cormorant Garamond'"),
-    document.fonts.ready,
-  ]),
-  new Promise((r) => setTimeout(r, 2600)),
-]);
+  document.title = deck.title;
+  /* The room, before anything is drawn in it: the chrome around the wall
+     takes its colours, then the wall, the floor and the lights. */
+  applyChrome(deck.room);
+  buildRoom(deck.room);
+  lightRoom(deck.room);
 
-Promise.all([fontWait, loadImages(deck.images)]).then(() => {
-  showComplaints();
-  sizeCards(promises);
-  placeCards(promises, STORY);
-  promises.forEach(buildCard);
-  /* Every picture has been measured and drawn into a texture by now.
-     Both references have to go — the cache holds one and each card
-     holds the other — or the decoded bitmaps stay resident for the life
-     of the page behind a wall that is done with them. */
-  for (const p of promises) delete p.userImage;
-  releaseImages();
-  resolveStory();
-  spaceOutCards();
-  initControls();
-  initReveal();
-  initPresent();
-  initDebug();
-  /* The editor is a dev tool, not part of the deck. The branch is
-     statically false in a build, so the module — and the stylesheet it
-     pulls in — is never emitted at all. */
-  if (import.meta.env.DEV)
-    import("./ui/editor.js").then((m) => m.initEditor());
-  requestAnimationFrame(loop);
-  setTimeout(() => {
-    loader?.classList.add("done");
-    fitCamera(); // the window has its real size by now, whatever it said at load
-    storyStart();
-  }, 400);
-});
+  /* The wall needs fonts and pictures before it can be built; the words
+     do not. Publishing them first means the deck is readable — and
+     crawlable — even if WebGL never comes up at all. */
+  buildTranscript(deck.title, STORY, promises);
+
+  const loader = el("loader");
+  const mark = loader?.querySelector(".mark");
+  /* As text, never as markup: on a host the title is whatever the
+     deck's owner typed, and the page is shared with everyone else's. */
+  if (mark) {
+    const dot = document.createElement("i");
+    dot.innerHTML = "&nbsp;•";
+    mark.replaceChildren(deck.title, dot);
+  }
+  const sub = loader?.querySelector(".sub");
+  if (sub && deck.subtitle) sub.textContent = deck.subtitle;
+
+  /* The handwriting has to be measurable before a note can be laid out,
+     so the wall waits — but not forever, and not on a slow connection. */
+  const fontWait = Promise.race([
+    Promise.all([
+      document.fonts.load("600 40px Caveat"),
+      document.fonts.load("600 40px 'Cormorant Garamond'"),
+      document.fonts.ready,
+    ]),
+    new Promise((r) => setTimeout(r, 2600)),
+  ]);
+
+  Promise.all([fontWait, loadImages(deck.images)]).then(() => {
+    showComplaints(source);
+    sizeCards(promises);
+    placeCards(promises, STORY);
+    promises.forEach(buildCard);
+    /* Every picture has been measured and drawn into a texture by now.
+       Both references have to go — the cache holds one and each card
+       holds the other — or the decoded bitmaps stay resident for the life
+       of the page behind a wall that is done with them. */
+    for (const p of promises) delete p.userImage;
+    releaseImages();
+    resolveStory();
+    spaceOutCards();
+    initControls();
+    initReveal();
+    initPresent();
+    initDebug();
+    offerEdit(source);
+    /* The editor is a tool for whoever may edit this deck: beside
+       `pnpm dev`, anyone; on a host, its owner on the draft page. It
+       arrives as its own chunk, so a deck being shown never loads it. */
+    if (source.editable) import("./ui/editor.js").then((m) => m.initEditor());
+    requestAnimationFrame(loop);
+    setTimeout(() => {
+      loader?.classList.add("done");
+      fitCamera(); // the window has its real size by now, whatever it said at load
+      storyStart();
+    }, 400);
+  });
+}
+
+loadSource().then(boot, fail);

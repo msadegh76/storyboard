@@ -15,6 +15,7 @@
 import { CHANNEL } from "../present-protocol.js";
 import type { PresentDeck, ToPresenter, FromPresenter } from "../present-protocol.js";
 import { promises } from "../deck/state.js";
+import { presenterUrl } from "../deck/source.js";
 import {
   beats,
   storyAt,
@@ -77,11 +78,8 @@ function openPresenter() {
     window_.focus();
     return;
   }
-  window_ = open(
-    "present.html",
-    "storyboard-presenter",
-    "width=1000,height=700",
-  );
+  // beside a built deck, or at the root of a host — see deck/source.ts
+  window_ = open(presenterUrl(), "storyboard-presenter", "width=1000,height=700");
 }
 
 /**

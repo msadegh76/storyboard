@@ -42,17 +42,45 @@ are standing at.
   `/__deck/move`, which lifts that slide's text out and lays it in at
   the new place. Comments between slides stay where they were.
 
-It is a dev tool. The branch that loads it is statically false in a
-build, so neither the panel, its stylesheet, nor the plugin that does
-the writing reaches a published deck.
+The panel is its own chunk, loaded only where the deck may be edited:
+beside `pnpm dev`, and on a hosted wall by the deck's owner. A deck
+being shown never loads it.
 
-The writing half lives in `tools/`: `deck-source.js` finds the span of
-one slide in the file and swaps the characters, so everything around it
-— comments, blank lines, the order somebody chose — is left alone. The
-one thing it cannot keep is a comment written *inside* the slide being
-saved. Writes are taken one at a time, so a quiet save landing beside
-a "+ Add" cannot write over it. `pnpm test` checks the source editing
-against both example decks.
+The panel edits cards as data and hands one slide at a time to a
+*store* (`src/ui/store.ts`). There are two. The file store prints the
+slide as source (`src/deck/print.ts`) and posts it to the plugin in
+`tools/deck-editor.js`; `deck-source.js` finds the span of one slide in
+the file and swaps the characters, so everything around it — comments,
+blank lines, the order somebody chose — is left alone. The one thing it
+cannot keep is a comment written *inside* the slide being saved. Writes
+are taken one at a time, so a quiet save landing beside a "+ Add"
+cannot write over it. The API store sends the slide as JSON to the
+server under `server/`, with the revision it saw; a stale revision is a
+409, and the panel reloads.
+
+## The hosted wall
+
+`server/` is plain JavaScript with JSDoc types, checked by
+`tsconfig.server.json`, and runs on Node 22.13 or later with nothing
+compiled: SQLite comes from `node:sqlite`, and the few TypeScript
+leaves it shares with the wall (`fields.ts`, `papers.ts`, `rooms.ts`)
+are imported by their real names. It runs three ways with the same
+routes — beside `pnpm dev` at `/home` (`server/vite.js`), on its own
+in front of `dist/` (`pnpm serve`), and in the tests with a database
+in memory.
+
+Two rules it holds to. **The server evaluates nothing**: a slide is
+checked by `validate.js`, field by field against the same lists the
+wall reads, never run. **Every write to a draft goes through
+`applyOp`** in `decks.js` — read, change, check, write, in one
+transaction, only if the revision still matches — so nothing that
+will not check reaches a row, and two windows cannot write over each
+other.
+
+`pnpm test` runs the source-editing checks and then the server's
+tests (`server/*.test.mjs`, with `node --test`): the operations on a
+document, the validator against every example deck, and the whole
+server end to end.
 
 ## Where things live
 
@@ -83,7 +111,8 @@ makes a field mandatory, it is probably the wrong shape.
 `pnpm test` covers the source editing behind the editor; the wall itself
 is verified by hand. Please check:
 
-- [ ] `pnpm build` passes — it typechecks first, so this covers both
+- [ ] `pnpm build` passes — it typechecks the wall and the server first
+- [ ] `pnpm test` is green
 - [ ] The console is clean on a fresh load
 - [ ] The example decks still present: `examples/onboarding`,
       `examples/hello-wall` and `examples/lighthouse-bakery` — point
@@ -94,6 +123,9 @@ is verified by hand. Please check:
       arrows in it drive the wall back
 - [ ] `B`, `T` and `S` do what they say
 - [ ] A narrow window still frames every stop
+- [ ] If you touched the server: on `pnpm dev`, `/home` still signs in,
+      makes a deck from an example, edits it on the wall, and publishes
+      it to `/d/…`
 
 The wall lays out the same way on every load — the tilt of each card
 comes from a seeded generator, not `Math.random`. Tilts are identical

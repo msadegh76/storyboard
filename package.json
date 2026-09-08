@@ -2,7 +2,7 @@
   "name": "storyboard",
   "private": true,
   "version": "0.1.0",
-  "description": "A slide deck presented as a gallery wall in 3D — index cards pinned to plaster, headings painted on, walked with the arrow keys.",
+  "description": "A slide deck presented as a gallery wall in 3D \u2014 index cards pinned to plaster, headings painted on, walked with the arrow keys.",
   "license": "MIT",
   "keywords": [
     "presentation",
@@ -16,18 +16,27 @@
   "packageManager": "pnpm@10.2.0",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "pnpm typecheck && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "test": "node tools/deck-source.test.mjs"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.server.json",
+    "test": "node tools/deck-source.test.mjs && node --disable-warning=ExperimentalWarning --test \"server/**/*.test.mjs\"",
+    "serve": "node --disable-warning=ExperimentalWarning server/index.js",
+    "push": "node tools/push.mjs"
   },
   "dependencies": {
+    "@hono/node-server": "^2.1.1",
     "gsap": "^3.12.5",
+    "hono": "^4.13.7",
+    "sharp": "^0.35.4",
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@types/node": "22",
     "@types/three": "^0.185.4",
     "typescript": "^5.9.3",
     "vite": "^8.2.0"
+  },
+  "engines": {
+    "node": ">=22.13"
   }
 }

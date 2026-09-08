@@ -147,3 +147,28 @@ body.blacked #blackout {
   opacity: 1;
   transform: translate(-50%, 0);
 }
+
+/* On a host, the way back into a published deck — for its owner only,
+   so nobody else ever sees it. Sits where the stop counter does not. */
+#edit-pill {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  z-index: 60;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--panel);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(70, 52, 28, 0.14);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  opacity: 0.75;
+  transition: opacity 0.3s ease;
+}
+#edit-pill:hover,
+#edit-pill:focus-visible {
+  opacity: 1;
+}

@@ -35,7 +35,7 @@ pnpm test      # the source editing behind the editor, against both example deck
 | `T` | read the deck as text |
 | `S` | copy a link to the stop you are standing on |
 | `Esc` | back out of whatever is over the wall |
-| `E` | with `pnpm dev` only: edit the slide you are standing on — see [Or write it on the wall](#or-write-it-on-the-wall) |
+| `E` | edit the slide you are standing on — beside `pnpm dev`, or on a host as the deck's owner. See [Or write it on the wall](#or-write-it-on-the-wall) |
 
 The presenter window is a second window, not a second app — it takes
 its deck over a `BroadcastChannel`, so there is no server and nothing
@@ -74,6 +74,66 @@ The shortest way to put one up, with no account and no command:
 build, then drag the `dist/` folder onto [Netlify
 Drop](https://app.netlify.com/drop). For GitHub Pages, push `dist/` to
 a `gh-pages` branch and point Pages at it.
+
+### Or run a wall people publish to
+
+The second way is a small server of our own, under [`server/`](server),
+for decks written in a browser rather than in a file: sign in with a
+link by email, start a deck as a bare wall or from an example, edit it
+on the wall with the same panel, and press **Publish**. Nobody sees a
+deck until its owner does that; what they see afterwards is at
+`/d/<address>`, cacheable, with the text version and the link previews
+filled in.
+
+```bash
+pnpm build
+OWNER_EMAIL=you@example.com pnpm serve     # http://localhost:8787
+```
+
+- **What it keeps** lives under `DATA_DIR` (`.data/` by default): one
+  SQLite file, and the pictures. Back it up by copying the directory.
+- **Sign-in links** are mailed when `RESEND_API_KEY` (and `MAIL_FROM`)
+  are set, and printed to the server's log when they are not — which
+  is enough to run a wall for yourself with no mail configured at all.
+- **Who may sign in:** `OWNER_EMAIL`, always; anyone who already has an
+  account; and, with `SIGNUP=open`, anyone.
+- **Pictures** go in through [sharp](https://sharp.pixelplumbing.com):
+  turned upright, cut to 2048 pixels on the long side, written as WebP
+  with their metadata stripped, named by their content.
+- **A deck is a document.** The draft and the published copy are two
+  JSON blobs in one row, each with a revision number. Every write from
+  the panel carries the revision it saw, so two windows cannot write
+  over each other; every publish is kept as a version, and any version
+  can be restored into the draft. Discarding changes and restoring a
+  version both offer an undo.
+- **Set `BASE_URL`** to the public address (`https://wall.example`)
+  when it is behind a domain; links and the check that a write came
+  from this site both read it.
+- **Quotas**, all in the environment: `QUOTA_DECKS` (50 a user),
+  `QUOTA_PICTURES` (200 a deck), `QUOTA_MB` (512 a user),
+  `QUOTA_PICTURE_MB` (20 a picture).
+
+There is a [`Dockerfile`](Dockerfile) that builds the wall and runs the
+server in front of it, keeping everything under `/data`:
+
+```bash
+docker build -t storyboard .
+docker run -p 8787:8787 -v storyboard-data:/data \
+  -e BASE_URL=https://wall.example -e OWNER_EMAIL=you@example.com storyboard
+```
+
+A deck written in a file can be put on a wall too. Make a token on the
+wall's home page, then from your checkout:
+
+```bash
+STORYBOARD_TOKEN=… pnpm push --to https://wall.example --publish
+```
+
+It reads the deck as data, uploads the pictures it names under
+`public/`, and writes the draft — publishing it as well, with
+`--publish`. The same server runs beside `pnpm dev`, at
+`/home`, so all of this can be tried without building anything: sign
+in as `owner@localhost` and the link prints in the terminal.
 
 ## Write a deck
 
@@ -117,7 +177,10 @@ With `pnpm dev` running, press `E` and an editor opens beside the wall,
 on whichever slide you are standing at. It is the quickest way to write
 a deck, because a wall is a composition and a composition has to be
 looked at. Everything it does lands in your deck file — the same file,
-the same shape, nothing else to keep in sync.
+the same shape, nothing else to keep in sync. (On a hosted wall the
+same panel opens on `/edit/<address>`, and what it writes is the
+deck's draft; a bar under its header says whether that draft is
+published, and is where you publish it.)
 
 - **+ Add** asks what you are adding — a note, a photo, or a heading
   painted on the wall — and where: this slide, or a new slide after
@@ -150,9 +213,10 @@ the same shape, nothing else to keep in sync.
   Under the rooms, three knobs — the wall's tint, the floor, the light
   — do the same for `wall:`, `floor:` and `light:`.
 
-It is a dev tool: none of it reaches a built deck. The panel calls a
-mural a *heading*, because that is what it is for; the field in the
-file is still `mural:`.
+None of it reaches a deck being shown: the panel is its own chunk,
+loaded only where the deck may be edited. It calls a mural a
+*heading*, because that is what it is for; the field in the file is
+still `mural:`.
 
 Pictures live under [`public/`](public), and an `image:` path is
 relative to it — `image: "shots/dashboard.png"` loads
@@ -295,13 +359,33 @@ and the resolved stops — for measuring the wall from the console.
 index.html            the shell: markup, fonts, and one module script
 present.html          the presenter window — its own page, no three.js
 deck.config.js        which deck to present
-vite.config.js        relative paths for the build; the editor's plugin in dev
-examples/             decks you can copy
+vite.config.js        relative paths for the build; the editor's plugin and the hosted server in dev
+Dockerfile            the built wall and the server, in one container
+examples/             decks you can copy — and, on a host, start from
 public/               images the decks point at — `image:` paths resolve here
 tools/
   deck-editor.js      the dev server's half of the editor: writes slides, saves pictures
   deck-source.js      edits a deck file as text, one slide's span at a time
   deck-source.test.mjs
+  deck-json.mjs       a deck file, read as data — no code runs
+  push.mjs            a deck in a file, put on a hosted wall
+
+server/               the hosted wall: decks in SQLite, published at /d/<address>
+  index.js            the server on its own, in front of dist/
+  vite.js             the same server beside `pnpm dev`, at /home
+  app.js              every route: sign in, home, the wall, the API the panel calls
+  config.js           what the environment says
+  db.js               node:sqlite, and the one migration
+  decks.js            every read and write against a deck — one transaction each
+  ops.js              the slide operations, on a document
+  validate.js         a deck checked before it is kept; evaluates nothing
+  auth.js             links by email, sessions, tokens
+  assets.js           a picture on its way in: sharp, WebP, named by content
+  storage.js          where the pictures are kept — the disk, for now
+  shell.js            the built page, with a deck written into it
+  pages.js            sign in, home, and what is said when a deck is not there
+  examples.js         the example decks, as templates
+  mail.js             a link, mailed or printed
 
 src/
   main.ts             boot — read the deck, fetch, build, open it
@@ -314,6 +398,9 @@ src/
 
   deck/
     types.ts          the deck format — every field an author can set
+    fields.ts         the values a field may take — a leaf the server reads too
+    source.ts         where the deck comes from: the module, or the page's JSON
+    print.ts          a slide, written as an author would have — pure
     schema.ts         what an author wrote → what the wall can build
     complaints.ts     what a deck got wrong, collected rather than thrown
     layout.ts         reading the deck onto the board, then opening gaps
@@ -342,7 +429,9 @@ src/
     controls.ts       the keys and the click that move the deck
     transcript.ts     the deck as text — for readers, search and screen readers
     present.ts        opening the presenter window and keeping it in step
-    editor.ts         the wall, edited from inside itself (dev only)
+    editor.ts         the wall, edited from inside itself
+    store.ts          where the editor's writes go: the file, or the server
+    publish.ts        the bar and the sheet that put a hosted deck at its link
     reveal.ts         the easter egg
 
   styles/             base, loader, hud, present, editor, reveal

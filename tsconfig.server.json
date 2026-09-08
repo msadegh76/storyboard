@@ -1,0 +1,14 @@
+{
+  /* The server and the tools run on Node, not in a browser: same rules
+     as the wall's, with Node's types and permission to import the few
+     TypeScript leaves the server shares with the wall by their real
+     names. `pnpm typecheck` runs both. */
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "allowImportingTsExtensions": true,
+    "noUnusedParameters": false
+  },
+  "include": ["server", "tools/deck-json.mjs", "tools/push.mjs"],
+  "exclude": ["server/**/*.test.mjs"]
+}

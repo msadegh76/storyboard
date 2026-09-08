@@ -29,12 +29,13 @@
      never a guess about what is on disk. Taking something away can be
      undone, for a while.
 
-   Nothing here keeps a copy of the deck: the file is the deck, and
-   this only ever hands it one slide at a time. See tools/deck-editor.js
-   for the other half.
+   Nothing here keeps a copy of the deck: the file — or, on a host, the
+   server — is the deck, and this only ever hands it one slide at a
+   time, as data, through a store (see ./store.ts). tools/deck-editor.js
+   is the file's half of that; the server's is under server/.
 
-   This module is dev only — it is imported behind `import.meta.env.DEV`
-   and never reaches a built deck. */
+   Loaded only where the deck may be edited: beside `pnpm dev`, and on
+   a host by the deck's owner. A deck being shown never loads it. */
 
 import "../styles/editor.css";
 import { THREE } from "../vendor.js";
@@ -78,8 +79,17 @@ import {
   type RoomName,
   type Knobs,
 } from "../rooms.js";
-import type { CardType, Promise_ } from "../deck/types.js";
+import type { Card, CardType, Deck, Promise_, Slide } from "../deck/types.js";
 import type { CardGroup } from "../scene/card.js";
+import { currentSource } from "../deck/source.js";
+import {
+  ApiStore,
+  FileStore,
+  StaleError,
+  type DeckStore,
+  type Payload,
+} from "./store.js";
+import { initPublish, renderPublish } from "./publish.js";
 
 const h = <K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -310,149 +320,101 @@ function retype(p: Promise_, t: CardType) {
 }
 
 /* ------------------------------------------------------------------
-   The slide, written down
+   The slide, as data
 ------------------------------------------------------------------ */
 
-const q = (s: string) => JSON.stringify(s);
+type Bag_ = Record<string, unknown>;
 
 /* One card as an author would have written it.
 
    Only what was actually chosen: a value equal to the default this kind
    of card already gets is left out, and so is anything the engine
    derived rather than the author pinning. A deck that spells out the
-   tilt of every card is a deck whose seed no longer means anything. */
-function cardSource(p: Promise_, indent: string): string {
+   tilt of every card is a deck whose seed no longer means anything.
+
+   The keys go in the order the file should read them, because the
+   printer keeps that order. */
+function cardData(p: Promise_): Card {
   const d = cardDefaults(p.type);
-  const rows: string[] = [];
-  const put = (k: string, v: string) => rows.push(`${indent}  ${k}: ${v},`);
+  const c: Bag_ = {};
 
   if (p.type === "mural") {
     // `mural: "Heading"` is the shorthand, and carries the title with it
-    put("mural", p.title ? q(p.title) : "true");
-    if (p.text) put("sub", q(p.text));
+    c.mural = p.title ? p.title : true;
+    if (p.text) c.sub = p.text;
   } else {
     // an `image:` already says photo; anything else needs saying
-    if (p.type === "photo" && !p.image) put("type", q("photo"));
-    if (p.title) put("title", q(p.title));
-    if (p.text) put("text", q(p.text));
+    if (p.type === "photo" && !p.image) c.type = "photo";
+    if (p.title) c.title = p.title;
+    if (p.text) c.text = p.text;
   }
 
-  if (p.image) put("image", q(p.image));
-  if (p.caption) put("caption", q(p.caption));
-  if (p.bullets?.length)
-    put(
-      "bullets",
-      `[\n${p.bullets.map((b) => `${indent}    ${q(b)},`).join("\n")}\n${indent}  ]`,
-    );
-  if (p.foot) put("foot", q(p.foot));
-  if (p.table) put("table", JSON.stringify(p.table));
+  if (p.image) c.image = p.image;
+  if (p.caption) c.caption = p.caption;
+  if (p.bullets?.length) c.bullets = p.bullets;
+  if (p.foot) c.foot = p.foot;
+  if (p.table) c.table = p.table;
   // the narration is content, not layout: it is always written back
-  if (p.say) put("say", q(p.say));
+  if (p.say) c.say = p.say;
 
   for (const k of ["paper", "attach", "font", "doodle"] as const) {
     const v = p[k];
-    if (v != null && v !== (d as unknown as Bag)[k]) put(k, q(String(v)));
+    if (v != null && v !== (d as unknown as Bag_)[k]) c[k] = String(v);
   }
-  if (p.pinColor != null && p.pinColor !== d.pinColor)
-    put("pinColor", `0x${p.pinColor.toString(16).padStart(6, "0")}`);
+  if (p.pinColor != null && p.pinColor !== d.pinColor) c.pinColor = p.pinColor;
   if (p.type === "mural") {
-    if (p.paint) put("paint", q(p.paint));
-    if (p.rule === false) put("rule", "false");
-    if (p.ink === false) put("ink", "false");
+    if (p.paint) c.paint = p.paint;
+    if (p.rule === false) c.rule = false;
+    if (p.ink === false) c.ink = false;
   }
 
-  if (!p.autoWidth) put("w", String(round(p.w)));
+  if (!p.autoWidth) c.w = round(p.w);
   /* A note's ratio is measured from its words and never lands on the
      card, and a mural's comes from the defaults — so one that is here
      and is not the default is one the author pinned. */
-  if (p.ratio != null && p.ratio !== (d as unknown as Bag).ratio)
-    put("ratio", String(round(p.ratio)));
-  if (!p.autoRot) put("rot", String(round(p.rot)));
-  if (!p.autoX && p.x != null) put("x", String(round(p.x)));
-  if (!p.autoY && p.y != null) put("y", String(round(p.y)));
+  if (p.ratio != null && p.ratio !== (d as unknown as Bag_).ratio)
+    c.ratio = round(p.ratio);
+  if (!p.autoRot) c.rot = round(p.rot);
+  if (!p.autoX && p.x != null) c.x = round(p.x);
+  if (!p.autoY && p.y != null) c.y = round(p.y);
 
-  return `{\n${rows.join("\n")}\n${indent}}`;
+  return c as unknown as Card;
 }
 
 /* A card that does not exist yet, of a given kind. The words are a
    placeholder the author is meant to overwrite — they say what the
    card is, so a wall of fresh cards still reads. */
-function newCard(kind: Kind, indent: string, path = ""): string {
-  const rows: string[] = [];
-  const put = (k: string, v: string) => rows.push(`${indent}  ${k}: ${v},`);
+function newCardData(kind: Kind, path = ""): Card {
+  const c: Bag_ = {};
   if (kind === "heading") {
-    put("mural", q("New heading"));
-    put("sub", q("a smaller line under it"));
+    c.mural = "New heading";
+    c.sub = "a smaller line under it";
   } else if (kind === "photo") {
-    if (path) put("image", q(path));
-    else put("type", q("photo"));
-    put("title", q("New picture"));
+    if (path) c.image = path;
+    else c.type = "photo";
+    c.title = "New picture";
   } else {
-    put("title", q("New card"));
-    put("text", q("Say something here."));
+    c.title = "New card";
+    c.text = "Say something here.";
   }
-  return `{\n${rows.join("\n")}\n${indent}}`;
+  return c as unknown as Card;
 }
 
-/* The whole slide, ready to drop into `slides`. One card is written
-   straight in; several are held together, which is what `notes` is. */
-function slideSource(cards: string[]): string {
-  if (cards.length === 1 && cards[0]) return cards[0];
-  return `{\n  notes: [\n${cards.map((c) => `    ${c}`).join(",\n")},\n  ],\n}`;
-}
-const stopSource = (ps: Promise_[]) =>
-  ps.length === 1 && ps[0]
-    ? cardSource(ps[0], "")
-    : slideSource(ps.map((p) => cardSource(p, "    ")));
+/* The whole stop, ready to go into `slides`. One card goes straight
+   in; several are held together, which is what `notes` is. */
+const stopData = (ps: Promise_[]): Slide => {
+  const only = ps[0];
+  if (ps.length === 1 && only) return cardData(only);
+  return { notes: ps.map(cardData) };
+};
 
 /* ------------------------------------------------------------------
-   Talking to the dev server
+   Where the writes go
 ------------------------------------------------------------------ */
 
-async function post<T>(what: string, body: unknown): Promise<T> {
-  const res = await fetch(`/__deck/${what}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  /* The dev server's plugin always answers in JSON. Anything else —
-     an empty 404, a Vite error page — means the request never reached
-     the plugin: usually a server that has been restarted in place
-     until it lost its middleware. The fix is to start it again, and
-     the message says so rather than leaving the author to guess. */
-  const out = await res.json().catch(() => null);
-  if (!out)
-    throw new Error(
-      `the dev server did not answer (HTTP ${res.status}). Stop it and run pnpm dev again.`,
-    );
-  if (!res.ok) throw new Error(out.error || `the server said ${res.status}`);
-  return out as T;
-}
-
-interface Written {
-  file: string;
-  slides: number;
-  note: string;
-  /** For `remove`: the text taken out, comment and all, laid flush left. */
-  removed?: string;
-}
-
-/* A picture, handed to the server to keep under public/slides/. What
-   comes back is the path the deck will use. */
-async function upload(file: File): Promise<string> {
-  const data = await new Promise<string>((ok, bad) => {
-    const r = new FileReader();
-    r.onload = () => ok(String(r.result).split(",")[1] ?? "");
-    r.onerror = () => bad(r.error);
-    r.readAsDataURL(file);
-  });
-  const out = await post<{ path: string }>("asset", {
-    name: file.name,
-    type: file.type,
-    data,
-  });
-  return out.path;
-}
+/* The file beside `pnpm dev`, or the server on a host. Chosen once, in
+   initEditor, from where the deck came. */
+let store: DeckStore;
 
 /* Ask for a picture file: a hidden input, so the button can say what
    it likes. Resolves to nothing if the dialog was dismissed. */
@@ -516,7 +478,7 @@ let say: HTMLElement | null = null;
 let open = false;
 let pick = 0;
 let pendingPick: number | null = null;
-let view: "slide" | "add" | "list" = "slide";
+let view: "slide" | "add" | "list" | "publish" = "slide";
 let settle: ReturnType<typeof setTimeout> | undefined;
 
 const stop = () => storyCards().map((g) => g.userData.p);
@@ -579,16 +541,28 @@ async function saveQuiet(slide: number) {
   saving = true;
   syncStatus();
   try {
-    await post<Written>("save", { slide, block: stopSource(ps), quiet: true });
+    await store.save(slide, stopData(ps), true);
     unsaved.delete(slide);
     failed = false;
     tell("");
   } catch (err) {
     failed = true;
-    tell(`Could not save: ${err instanceof Error ? err.message : err}`, true);
+    if (err instanceof StaleError) stale(err);
+    else tell(`Could not save: ${err instanceof Error ? err.message : err}`, true);
   }
   saving = false;
   syncStatus();
+}
+
+/* A write against a revision the server no longer holds: another
+   window has moved the deck on. Nothing on this wall can be trusted
+   over what is there, so the page is rebuilt from it — and says so
+   first, because the last few keystrokes go with it. */
+function stale(err: Error) {
+  reloading = true;
+  clearTimeout(saveT);
+  tell(`${err.message} Reloading…`, true);
+  setTimeout(() => location.reload(), 1500);
 }
 
 /** Write what is pending right now. `⌘S`. */
@@ -784,17 +758,24 @@ function refreshPosition(p: Promise_) {
 async function reshape(
   what: "save" | "add" | "remove" | "move",
   slide: number,
-  block?: string,
-  current?: string,
+  payload?: Payload,
+  current?: Payload,
   to?: number,
 ) {
   reloading = true;
   clearTimeout(saveT);
   try {
-    const out = await post<Written>(what, { slide, block, current, to });
-    unsaved.clear(); // the page is about to be rebuilt from disk
+    const out =
+      what === "save"
+        ? await store.save(slide, payload ?? stopData(cardsOf(slide)), false)
+        : what === "add"
+          ? await store.add(slide, payload ?? stopData([]), current)
+          : what === "remove"
+            ? await store.remove(slide)
+            : await store.move(slide, to ?? slide);
+    unsaved.clear(); // the page is about to be rebuilt from what was written
     syncStatus();
-    tell(`${out.note} → ${out.file}`);
+    tell(out.note);
     /* The reload that follows lands wherever the address bar points.
        Point it at the slide that was just made, or moved — or, after
        a removal, at the one before it — so nobody has to walk back to
@@ -817,12 +798,14 @@ async function reshape(
        it has been restarted since the page was loaded, in which case
        it no longer knows which page the file belongs to and says
        nothing. The wall would then sit on a deck that is not the one
-       on disk. So: if the reload has not come in a moment, make it. */
+       on disk. So: if the reload has not come in a moment, make it. A
+       host has no watcher at all, and this is the reload. */
     setTimeout(() => location.reload(), 1500);
     return out;
   } catch (err) {
     reloading = false;
-    tell(String(err instanceof Error ? err.message : err), true);
+    if (err instanceof StaleError) stale(err);
+    else tell(String(err instanceof Error ? err.message : err), true);
     return null;
   }
 }
@@ -854,9 +837,9 @@ async function doAdd() {
   if (addWhere === "here" && here != null) {
     // the new card joins this slide, and is the one picked when the
     // page comes back
-    const cards = [...ps.map((c) => cardSource(c, "    ")), newCard(addKind, "    ", path)];
+    const cards: Card[] = [...ps.map(cardData), newCardData(addKind, path)];
     remember(KEY.pick, String(ps.length));
-    await reshape("save", here, slideSource(cards));
+    await reshape("save", here, { notes: cards });
     return;
   }
 
@@ -866,10 +849,10 @@ async function doAdd() {
   const after = addAfter();
   const current =
     here != null && here === after && unsaved.has(here)
-      ? stopSource(ps)
+      ? stopData(ps)
       : undefined;
   remember(KEY.pick, "0");
-  await reshape("add", after, newCard(addKind, "", path), current);
+  await reshape("add", after, newCardData(addKind, path), current);
 }
 
 /* A picture dropped on the wall is a photo card, on this slide or — from
@@ -877,7 +860,7 @@ async function doAdd() {
 async function dropPicture(file: File) {
   tell(`Uploading ${file.name}…`);
   try {
-    addPath = await upload(file);
+    addPath = await store.upload(file);
   } catch (err) {
     tell(`Could not upload: ${err instanceof Error ? err.message : err}`, true);
     return;
@@ -892,9 +875,10 @@ async function dropPicture(file: File) {
 ------------------------------------------------------------------ */
 
 interface Undo {
-  what: "card" | "slide";
+  what: "card" | "slide" | "draft";
   slide: number;
-  block: string;
+  /** A stop, as the store carries one — or, for `draft`, the whole deck. */
+  payload: unknown;
   label: string;
 }
 
@@ -906,12 +890,12 @@ function removeCard(ps: Promise_[], at: number) {
   const undo: Undo = {
     what: "card",
     slide,
-    block: stopSource(ps),
+    payload: stopData(ps),
     label: `Card removed from slide ${slide}`,
   };
   remember(KEY.undo, JSON.stringify(undo));
   remember(KEY.pick, String(Math.max(0, at - 1)));
-  void reshape("save", slide, stopSource(ps.filter((_, i) => i !== at)));
+  void reshape("save", slide, stopData(ps.filter((_, i) => i !== at)));
 }
 
 async function removeSlide(ps: Promise_[]) {
@@ -919,7 +903,7 @@ async function removeSlide(ps: Promise_[]) {
   const undo: Undo = {
     what: "slide",
     slide,
-    block: stopSource(ps),
+    payload: stopData(ps),
     label: `Slide ${slide} deleted`,
   };
   // remembered before the write, in case the page is rebuilt before
@@ -927,7 +911,30 @@ async function removeSlide(ps: Promise_[]) {
   // so the undo puts back the author's own text, comment and all
   remember(KEY.undo, JSON.stringify(undo));
   const out = await reshape("remove", slide);
-  if (out?.removed) remember(KEY.undo, JSON.stringify({ ...undo, block: out.removed }));
+  if (out?.removed) remember(KEY.undo, JSON.stringify({ ...undo, payload: out.removed }));
+}
+
+/* The whole draft was replaced — discarded for what is published, or
+   an old version restored into it — and the page rebuilt. The undo is
+   the draft as it was, put back whole. Only a host can do this. */
+function replacedDraft(label: string, was: Deck) {
+  remember(KEY.undo, JSON.stringify({ what: "draft", slide: 0, payload: was, label } satisfies Undo));
+  reloading = true;
+  clearTimeout(saveT);
+  setTimeout(() => location.reload(), 300);
+}
+async function putBackDraft(was: Deck) {
+  if (!(store instanceof ApiStore)) return;
+  reloading = true;
+  try {
+    const out = await store.replaceDraft(was);
+    tell(out.note);
+    setTimeout(() => location.reload(), 300);
+  } catch (err) {
+    reloading = false;
+    if (err instanceof StaleError) stale(err);
+    else tell(String(err instanceof Error ? err.message : err), true);
+  }
 }
 
 let undoT: ReturnType<typeof setTimeout> | undefined;
@@ -945,8 +952,9 @@ function offerUndo(u: Undo) {
     h("span", "", u.label),
     button("Undo", "", "Put it back", () => {
       gone();
-      if (u.what === "card") void reshape("save", u.slide, u.block);
-      else void reshape("add", u.slide - 1, u.block);
+      if (u.what === "draft") void putBackDraft(u.payload as Deck);
+      else if (u.what === "card") void reshape("save", u.slide, u.payload as Payload);
+      else void reshape("add", u.slide - 1, u.payload as Payload);
     }),
     button("×", "ed-x", "Dismiss", gone),
   );
@@ -1250,18 +1258,16 @@ async function writeRoom(room: Room) {
   const natural = naturalKnobs(room.name);
   const k = room.knobs;
   try {
-    const out = await post<Written>("deck", {
-      set: {
-        room: room.name === "plaster" ? null : room.name,
-        wall: k.wall ?? null,
-        floor: k.floor && k.floor !== natural.floor ? k.floor : null,
-        light: k.light && k.light !== natural.light ? k.light : null,
-      },
-      quiet: true,
+    const out = await store.setFields({
+      room: room.name === "plaster" ? null : room.name,
+      wall: k.wall ?? null,
+      floor: k.floor && k.floor !== natural.floor ? k.floor : null,
+      light: k.light && k.light !== natural.light ? k.light : null,
     });
-    tell(`${out.note} → ${out.file}`);
+    tell(out.note);
   } catch (err) {
-    tell(`Could not save the room: ${err instanceof Error ? err.message : err}`, true);
+    if (err instanceof StaleError) stale(err);
+    else tell(`Could not save the room: ${err instanceof Error ? err.message : err}`, true);
   }
 }
 
@@ -1391,7 +1397,9 @@ function renderOverview() {
       h(
         "p",
         "ed-empty",
-        "Nothing is pinned up yet. Add the first slide and it is written into your deck file.",
+        store.kind === "file"
+          ? "Nothing is pinned up yet. Add the first slide and it is written into your deck file."
+          : "Nothing is pinned up yet. Add the first slide and it is kept with your deck.",
       ),
     );
   } else {
@@ -1419,13 +1427,13 @@ function pictureSource(onPath: (path: string) => void, current: string) {
   box.append(h("label", "", "Picture"));
   const zone = h("button", "ed-drop");
   zone.type = "button";
-  zone.append(h("b", "", "Drop an image here, or choose a file"), h("small", "", "PNG, JPEG, GIF or WebP. It is copied into public/slides/ and named for you."));
+  zone.append(h("b", "", "Drop an image here, or choose a file"), h("small", "", `PNG, JPEG, GIF or WebP. ${store.pictureNote}`));
   const take = async (file: File | undefined) => {
     if (!isPicture(file)) return;
     zone.classList.add("busy");
     tell(`Uploading ${file.name}…`);
     try {
-      onPath(await upload(file));
+      onPath(await store.upload(file));
       tell("");
     } catch (err) {
       tell(`Could not upload: ${err instanceof Error ? err.message : err}`, true);
@@ -1448,7 +1456,7 @@ function pictureSource(onPath: (path: string) => void, current: string) {
 
   const path = h("input");
   path.type = "text";
-  path.placeholder = "or a path under public/ — slides/dashboard.png";
+  path.placeholder = store.pictureHint;
   path.value = current;
   path.addEventListener("change", () => onPath(path.value.trim()));
   box.append(path);
@@ -1612,7 +1620,7 @@ function renderSlide(ps: Promise_[]) {
     button("Let the wall place it", "", "Forget the pinned position and let the wall lay this card out again", () => {
       p.autoX = true;
       p.autoY = true;
-      void reshape("save", slide, stopSource(stop()));
+      void reshape("save", slide, stopData(stop()));
     }),
     button("Space out", "", "Push apart anything that overlaps", () => {
       spaceOutCards();
@@ -1679,6 +1687,22 @@ function render() {
   const ps = stop();
 
   if (view === "add") renderAdd();
+  else if (view === "publish" && store instanceof ApiStore)
+    renderPublish({
+      store,
+      body,
+      foot,
+      setHead,
+      tell,
+      button,
+      section,
+      close: () => {
+        view = "slide";
+        render();
+      },
+      replaced: replacedDraft,
+      stale,
+    });
   else if (view === "list" && ps.length) renderList();
   else if (!ps.length) renderOverview();
   else renderSlide(ps);
@@ -1717,7 +1741,17 @@ function build() {
 
   body = h("div", "ed-body");
   foot = h("footer", "ed-foot");
-  root.append(bar, body, foot);
+  root.append(bar);
+  /* On a host a saved draft is not a published deck. The bar under the
+     header says which the wall is showing, and is the way to publish. */
+  if (store instanceof ApiStore)
+    root.append(
+      initPublish(store, () => {
+        view = view === "publish" ? "slide" : "publish";
+        render();
+      }),
+    );
+  root.append(body, foot);
   document.body.append(root);
   initDrag();
 
@@ -1743,8 +1777,11 @@ function toggle() {
   if (open) render();
 }
 
-/** Open the editor with `e`. Dev only — see the note at the top. */
+/** Open the editor with `e`. Loaded only where the deck may be edited — see the note at the top. */
 export function initEditor() {
+  const source = currentSource();
+  store = source.hosted ? new ApiStore(source.hosted) : new FileStore();
+
   // a key nobody was told about is a key nobody presses
   console.info("storyboard: press e to edit this slide");
   const hint = document.getElementById("hint");
@@ -1771,7 +1808,11 @@ export function initEditor() {
     pendingPick = null;
   }
 
-  if (recall(KEY.open) === "1") toggle();
+  /* Open the way it was left in this tab. On a host, open to begin
+     with: the page is the editor, and a closed panel would be a wall
+     with nothing to say for itself. */
+  const was = recall(KEY.open);
+  if (was === "1" || (was === null && store.kind === "api")) toggle();
 
   // what was just taken away can be put back, for a while
   const undo = recall(KEY.undo);
@@ -1806,13 +1847,7 @@ export function initEditor() {
       clearTimeout(saveT);
       const slide = slideNow();
       const ps = cardsOf(slide);
-      if (slide && ps.length && !reloading)
-        navigator.sendBeacon?.(
-          "/__deck/save",
-          new Blob([JSON.stringify({ slide, block: stopSource(ps), quiet: true })], {
-            type: "application/json",
-          }),
-        );
+      if (slide && ps.length && !reloading) store.beacon(slide, stopData(ps));
     }
   });
 }

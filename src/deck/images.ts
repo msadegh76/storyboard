@@ -10,6 +10,21 @@ import { complain } from "./complaints.js";
 
 const cache = new Map<string, HTMLImageElement>();
 
+/* Where a relative `image:` is fetched from.
+
+   Locally a path is relative to public/, and the page is served from
+   the same place, so nothing needs adding. On a host a deck's pictures
+   live under /a/<deck id>/, and the server says so when it hands the
+   page the deck. A path that is already absolute is left alone. */
+let assetBase = "";
+export const setAssetBase = (base: string) => {
+  assetBase = base;
+};
+
+/** The address a card's `image:` is actually fetched from. */
+export const resolveImage = (src: string) =>
+  /^(?:[a-z][a-z0-9+.-]*:|\/)/i.test(src) ? src : assetBase + src;
+
 /** The loaded <img> for a path, or undefined if it never arrived. */
 export const imageFor = (src?: string) =>
   src == null ? undefined : cache.get(src);
@@ -35,7 +50,7 @@ export function loadImages(sources: string[]): Promise<void> {
             );
             done();
           };
-          img.src = src;
+          img.src = resolveImage(src);
         }),
     ),
   ).then(() => undefined);
