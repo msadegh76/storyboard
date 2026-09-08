@@ -14,6 +14,7 @@
 import { Hono } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { bodyLimit } from "hono/body-limit";
+import { HTTPException } from "hono/http-exception";
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import path from "node:path";
@@ -113,6 +114,13 @@ export function createApp({ config, db, storage, mail, shell }) {
 
   const status = (/** @type {number} */ n) => /** @type {any} */ (n);
 
+  /* Too much to take in one request — said before any of it is read.
+     Hono's own refusal is an HTTPException, which the error handler
+     knows; the message is ours. */
+  const tooMuch = () => {
+    throw new HttpError(413, "that is too much to take in one request");
+  };
+
   /* ---- who is here ---- */
 
   app.use("*", async (c, next) => {
@@ -138,7 +146,7 @@ export function createApp({ config, db, storage, mail, shell }) {
 
   app.onError((err, c) => {
     const st =
-      err instanceof HttpError || err instanceof AuthError
+      err instanceof HttpError || err instanceof AuthError || err instanceof HTTPException
         ? err.status
         : err instanceof ValidationError
           ? 400
@@ -195,7 +203,7 @@ export function createApp({ config, db, storage, mail, shell }) {
     return c.html(signinPage({ logMode, next: localPath(c.req.query("next")) ?? undefined }));
   });
 
-  app.post("/api/auth/link", bodyLimit({ maxSize: 4096 }), async (c) => {
+  app.post("/api/auth/link", bodyLimit({ maxSize: 4096, onError: tooMuch }), async (c) => {
     const body = await bodyOf(c);
     const next = localPath(body.next);
     try {
@@ -374,8 +382,8 @@ export function createApp({ config, db, storage, mail, shell }) {
     return row;
   };
 
-  const small = bodyLimit({ maxSize: 512 * 1024 });
-  const large = bodyLimit({ maxSize: Math.round(config.quota.pictureBytes * 1.05) });
+  const small = bodyLimit({ maxSize: 512 * 1024, onError: tooMuch });
+  const large = bodyLimit({ maxSize: Math.round(config.quota.pictureBytes * 1.05), onError: tooMuch });
 
   api.get("/", (c) => c.json({ decks: decks.list(/** @type {any} */ (userOf(c)).id) }));
 

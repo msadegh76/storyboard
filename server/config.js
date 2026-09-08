@@ -39,7 +39,8 @@ export function readConfig(env = process.env, over = {}) {
   const baseUrl = (env.BASE_URL || `http://localhost:${port}`).replace(/\/+$/, "");
   const num = (/** @type {string | undefined} */ v, /** @type {number} */ d) =>
     v && Number.isFinite(Number(v)) ? Number(v) : d;
-  return {
+  /** @type {Config} */
+  const config = {
     port,
     host: env.HOST || "0.0.0.0",
     baseUrl,
@@ -55,7 +56,7 @@ export function readConfig(env = process.env, over = {}) {
     signup: env.SIGNUP === "open" ? "open" : "closed",
     mail: { resendKey: env.RESEND_API_KEY || "", from: env.MAIL_FROM || "Storyboard <storyboard@localhost>" },
     dev: false,
-    secureCookies: baseUrl.startsWith("https://"),
+    secureCookies: false,
     quota: {
       decksPerUser: num(env.QUOTA_DECKS, 50),
       picturesPerDeck: num(env.QUOTA_PICTURES, 200),
@@ -65,4 +66,7 @@ export function readConfig(env = process.env, over = {}) {
     },
     ...over,
   };
+  // decided from the address actually in use, which an override may have changed
+  config.secureCookies = over.secureCookies ?? config.baseUrl.startsWith("https://");
+  return config;
 }

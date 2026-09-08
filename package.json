@@ -19,7 +19,7 @@
     "build": "pnpm typecheck && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.server.json",
-    "test": "node tools/deck-source.test.mjs && node --disable-warning=ExperimentalWarning --test \"server/**/*.test.mjs\"",
+    "test": "node tools/deck-source.test.mjs && node --disable-warning=ExperimentalWarning --test \"server/**/*.test.mjs\" \"tools/*.test.mjs\"",
     "serve": "node --disable-warning=ExperimentalWarning server/index.js",
     "push": "node tools/push.mjs"
   },
