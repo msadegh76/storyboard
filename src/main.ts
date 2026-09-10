@@ -65,15 +65,22 @@ function showComplaints(source: DeckSource) {
 }
 
 /* On a host, the one thing added over a published wall: the way back
-   into it, for whoever owns it. Everyone else sees the wall alone. */
+   into it, for whoever owns it. Everyone else sees the wall alone.
+
+   Beside `pnpm dev` the wall at / is the deck file's, with the file
+   editor on it — and the product's own front door is a route away.
+   The same pill points there, so nobody mistakes one for the other. */
 function offerEdit(source: DeckSource) {
-  const to = source.hosted?.editUrl;
-  if (!to || source.editable) return;
+  const dev = import.meta.env.DEV && source.mode === "file";
+  const to = dev ? "/welcome" : source.hosted?.editUrl;
+  if (!to || source.editable && !dev) return;
   const a = document.createElement("a");
   a.id = "edit-pill";
   a.href = to;
-  a.textContent = "Edit";
-  a.title = "Open the editor on this deck";
+  a.textContent = dev ? "Hosted wall ↗" : "Edit";
+  a.title = dev
+    ? "This wall is your deck file, with the file editor. The hosted product, as a visitor meets it, is at /welcome"
+    : "Open the editor on this deck";
   el("app-root")?.append(a);
 }
 

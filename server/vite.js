@@ -54,11 +54,21 @@ export function hosted() {
         if (!HOSTED.test(req.url ?? "")) return next();
         void listener(req, res);
       });
-      server.config.logger.info(
-        config.signup === "open"
-          ? "  storyboard: hosted wall at /home — sign in with any address; the link prints here"
-          : `  storyboard: hosted wall at /home — sign in as ${config.ownerEmail}; the link prints here`,
-      );
+      /* The links a deck is given — View, Copy the link, the address
+         on the publish sheet — are built on config.baseUrl, and until
+         Vite has actually bound a port nobody knows what that is. So it
+         is read off the socket once it is listening, not guessed. */
+      server.httpServer?.once("listening", () => {
+        const a = server.httpServer?.address();
+        if (a && typeof a === "object")
+          config.baseUrl = `${server.config.server.https ? "https" : "http"}://localhost:${a.port}`;
+        server.config.logger.info(
+          `  storyboard: the hosted wall is at ${config.baseUrl}/welcome — ` +
+            (config.signup === "open"
+              ? "any address signs in, and the link prints here"
+              : `sign in as ${config.ownerEmail}; the link prints here`),
+        );
+      });
     },
   };
 }

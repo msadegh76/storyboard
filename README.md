@@ -153,7 +153,11 @@ It reads the deck as data, uploads the pictures it names under
 `public/`, and writes the draft — publishing it as well, with
 `--publish`. The same server runs beside `pnpm dev`, at
 `/home`, so all of this can be tried without building anything: sign
-in with any address and the link prints in the terminal.
+in with any address and the link prints in the terminal. Beside
+`pnpm dev` the wall at `/` is still your deck file with the file editor
+on it; the product as a visitor meets it — the walking wall, **Try it,
+no account** — is at `/welcome`, and a pill on the file wall points
+there. With `pnpm serve` after a build, `/` is that front door.
 
 ## Write a deck
 
