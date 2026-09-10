@@ -208,3 +208,17 @@ export function drawDoodle(
   ctx.restore();
 }
 
+/* ------------------------------------------------------------------
+   A card being written on
+------------------------------------------------------------------ */
+
+/* While a card is edited in place, its words are typed into an element
+   laid over it, so the texture underneath is drawn without them — the
+   paper, the ruling, the pin, but no ink. One card at a time. */
+let blanked: object | null = null;
+
+/** Draw this card's texture without its words, until told otherwise. */
+export const blankText = (p: object | null) => {
+  blanked = p;
+};
+export const isBlank = (p: object) => blanked === p;

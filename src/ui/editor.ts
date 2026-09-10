@@ -90,6 +90,8 @@ import {
   type Payload,
 } from "./store.js";
 import { initPublish, renderPublish } from "./publish.js";
+import { initInPlace, type InPlaceKey } from "./inplace.js";
+import { cardAt } from "../scene/pick.js";
 
 const h = <K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -415,6 +417,41 @@ const stopData = (ps: Promise_[]): Slide => {
 /* The file beside `pnpm dev`, or the server on a host. Chosen once, in
    initEditor, from where the deck came. */
 let store: DeckStore;
+
+/* Writing on the card itself (see inplace.ts). Its keystrokes land on
+   the card exactly as the panel's fields do, so the same save follows;
+   the panel's own fields are kept in step as it types. */
+const IN_PLACE: Record<InPlaceKey, () => Field> = {
+  title: () => F.title,
+  text: () => F.text,
+  bullets: () => F.bullets,
+  caption: () => F.caption,
+};
+const inplace = initInPlace({
+  set(p, key, value) {
+    write(p, IN_PLACE[key](), value);
+    touched(p);
+    mirror(key, value);
+  },
+  redraw(p) {
+    void redraw(p);
+  },
+  closed() {
+    if (open) render();
+  },
+});
+
+/* The panel's field for what was just typed on the card, if it is
+   showing, without rebuilding the panel under a hand that is typing. */
+function mirror(key: InPlaceKey, value: string | string[]) {
+  if (!body) return;
+  const label = IN_PLACE[key]().label;
+  for (const row of body.querySelectorAll<HTMLElement>(".ed-f")) {
+    if (row.querySelector("label")?.textContent !== label) continue;
+    const input = row.querySelector<HTMLInputElement | HTMLTextAreaElement>("input, textarea");
+    if (input) input.value = Array.isArray(value) ? value.join("\n") : value;
+  }
+}
 
 /* Ask for a picture file: a hidden input, so the button can say what
    it likes. Resolves to nothing if the dialog was dismissed. */
@@ -1051,6 +1088,22 @@ function initDrag() {
   canvas.addEventListener("pointerup", drop);
   canvas.addEventListener("pointercancel", drop);
 
+  /* Two clicks on a card: write on it, where it is. The first click
+     picked it; the second, this close behind, is the wish to type. */
+  canvas.addEventListener("dblclick", (e) => {
+    if (!open) return;
+    const groups = storyCards();
+    const g = cardAt(e.clientX, e.clientY, groups);
+    if (!g) return;
+    const i = groups.indexOf(g);
+    if (i !== pick || view !== "slide") {
+      pick = i;
+      view = "slide";
+      render();
+    }
+    inplace.open(g.userData.p);
+  });
+
   /* A picture file dropped anywhere on the wall becomes a photo card.
      The browser would otherwise open the file in place of the deck. */
   addEventListener("dragover", (e) => {
@@ -1553,7 +1606,7 @@ function coachMark(): HTMLElement | null {
   const box = h("div", "ed-coach");
   const list = h("ol");
   for (const line of [
-    "Type in a field below and the card redraws as you go.",
+    "Double-click a card to write on it, or type in the fields below; it redraws as you go.",
     "Drag a card on the wall to move it. + Add puts another beside it.",
     "Press Keep it or Publish when it is ready to be seen.",
   ])
@@ -1617,6 +1670,13 @@ function renderSlide(ps: Promise_[]) {
   } else {
     for (const f of onTheWall(t)) wall.append(fieldRow(p, f));
   }
+  const onCard = h("div", "ed-acts");
+  onCard.append(
+    button(t === "photo" ? "Write the caption on it" : "Write on it", "", "Type on the card itself — or double-click it on the wall", () =>
+      inplace.open(p),
+    ),
+  );
+  wall.append(onCard);
   body.append(wall);
 
   // a photo's words: published beside the wall, never drawn on it
@@ -1712,7 +1772,7 @@ function renderSlide(ps: Promise_[]) {
       render();
     }),
   );
-  foot.append(h("p", "ed-hint", "Saved as you go · ⌘S saves right now · drop a picture on the wall to add it"));
+  foot.append(h("p", "ed-hint", "Saved as you go · ⌘S saves right now · double-click a card to write on it · drop a picture to add it"));
 }
 
 function render() {
@@ -1791,6 +1851,7 @@ function build() {
   initDrag();
 
   onStoryMove(() => {
+    inplace.close();
     pick = pendingPick ?? 0;
     pendingPick = null;
     view = "slide";
@@ -1800,6 +1861,7 @@ function build() {
 
 function toggle() {
   if (!root) build();
+  if (open) inplace.close();
   open = !open;
   root?.classList.toggle("show", open);
   document.body.classList.toggle("ed-open", open);

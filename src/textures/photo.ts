@@ -4,7 +4,7 @@ import { THREE } from "../vendor.js";
 import { SS } from "../config.js";
 import { clamp, rnd } from "../util.js";
 import type { Promise_ } from "../deck/types.js";
-import { ctx2d, speckle } from "./draw.js";
+import { ctx2d, speckle, isBlank } from "./draw.js";
 
 /* The mount a capture is laid into: a margin all round, and a chin
    below it. The picture window follows the picture's own proportions,
@@ -165,7 +165,7 @@ export function makePhotoTexture(p: Promise_) {
     ctx.strokeStyle = "rgba(90,70,45,.3)";
     ctx.lineWidth = 2;
     ctx.strokeRect(m, m, pw, ph);
-    drawCaption(ctx, p.caption, m, pw, ph, foot);
+    drawCaption(ctx, isBlank(p) ? undefined : p.caption, m, pw, ph, foot);
     const t2 = new THREE.CanvasTexture(c);
     t2.colorSpace = THREE.SRGBColorSpace;
     t2.anisotropy = 8;
@@ -188,7 +188,7 @@ export function makePhotoTexture(p: Promise_) {
   ctx.strokeStyle = "rgba(90,70,45,.15)";
   ctx.lineWidth = 2;
   ctx.strokeRect(m, m, pw, ph);
-  drawCaption(ctx, p.caption, m, pw, ph, foot);
+  drawCaption(ctx, isBlank(p) ? undefined : p.caption, m, pw, ph, foot);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 8;

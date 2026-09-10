@@ -214,6 +214,11 @@ published, and is where you publish it.)
   another kind in place.
 - Typing redraws the card as you go — no reload. Drag a card with the
   pointer and it stays where you left it.
+- Double-click a card and write on it where it hangs: the title, the
+  text and the bullets of a note, a heading and the line under it, a
+  photo's caption — in the card's own hand and tilt, following it as
+  the camera settles. `Esc` or a click elsewhere ends it. Tables and
+  footnotes stay in the panel.
 - A photo takes its picture as a file: drop one on the wall, or on the
   panel, or choose it — it is copied into `public/slides/` and the
   card points at it. Typing a path still works.
