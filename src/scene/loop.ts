@@ -1,4 +1,10 @@
-/* One frame: spring the camera, settle every card, drift the dust. */
+/* One frame: spring the camera, settle every card, drift the dust.
+
+   Not every frame is drawn. While the camera is on its way, a card is
+   lifting, or a hand is on the pointer, the wall draws at the screen's
+   rate; once everything has settled it drops to a slow tick that keeps
+   the sway and the dust going, and the shadows are left as they are.
+   See wake.ts for what counts as something moving. */
 
 import { REDUCED } from "../util.js";
 import { MURAL_REST, PAPER_REST, STORY_LIFT } from "../config.js";
@@ -7,10 +13,42 @@ import { cards } from "./card.js";
 import { dust, dustN, dv } from "./room.js";
 import { ndc } from "./pointer.js";
 import { storyReframe } from "../deck/story.js";
+import { awake } from "./wake.js";
+
+/* How often the wall is drawn once it has settled. Enough for the
+   sway and the dust to read as motion, a fifth of the work of sixty. */
+const IDLE_FPS = 12;
+/* How close a spring has to be to its target to count as arrived. */
+const STILL = 0.002;
+
+function settled() {
+  if (
+    Math.abs(cam.tx - cam.x) > STILL ||
+    Math.abs(cam.ty - cam.y) > STILL ||
+    Math.abs(cam.tz - cam.z) > STILL
+  )
+    return false;
+  for (const g of cards) {
+    const u = g.userData;
+    if (
+      Math.abs(u.tLift - u.lift) > STILL ||
+      Math.abs(u.tSc - u.sc) > STILL ||
+      Math.abs(u.tGlow - u.glow) > STILL
+    )
+      return false;
+  }
+  return true;
+}
 
 let last = performance.now();
+let drawn = 0;
 export function loop(now: number) {
   requestAnimationFrame(loop);
+  const busy = awake(now) || !settled();
+  if (!busy && now - drawn < 1000 / IDLE_FPS) return;
+  drawn = now;
+  // shadows follow anything that actually moved; a sway does not count
+  if (busy) renderer.shadowMap.needsUpdate = true;
   // capped so a backgrounded tab cannot jump the camera on return,
   // but loose enough that a slow projector still tracks real time
   const dt = Math.min(0.1, (now - last) / 1000);

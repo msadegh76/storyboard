@@ -8,6 +8,7 @@ import { makeMuralTexture } from "../textures/mural.js";
 import { makePhotoTexture } from "../textures/photo.js";
 import { makeTapeTexture } from "../textures/surfaces.js";
 import { scene } from "./stage.js";
+import { wake } from "./wake.js";
 import { imageFor } from "../deck/images.js";
 import type { Promise_ } from "../deck/types.js";
 
@@ -224,6 +225,7 @@ export function buildCard(p: Promise_): CardGroup {
   paper.userData.group = group;
   scene.add(group);
   cards.push(group);
+  wake();
   return group;
 }
 

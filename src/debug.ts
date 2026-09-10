@@ -5,6 +5,7 @@
 
 import { cam, camera, scene, renderer } from "./scene/stage.js";
 import { cards } from "./scene/card.js";
+import { loop } from "./scene/loop.js";
 import { STORY, promises } from "./deck/state.js";
 import { beats, cardsBox, storyFrame } from "./deck/story.js";
 
@@ -20,6 +21,8 @@ export interface DebugHandle {
   camera: typeof camera;
   scene: typeof scene;
   renderer: typeof renderer;
+  /** One frame, by hand: for measuring how often the wall draws itself. */
+  loop: typeof loop;
   cards: typeof cards;
   STORY: typeof STORY;
   promises: typeof promises;
@@ -36,6 +39,7 @@ export function initDebug() {
     camera,
     scene,
     renderer,
+    loop,
     cards,
     STORY,
     promises,
