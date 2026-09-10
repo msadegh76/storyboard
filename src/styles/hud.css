@@ -172,3 +172,71 @@ body.blacked #blackout {
 #edit-pill:focus-visible {
   opacity: 1;
 }
+
+/* The front door: a few words over a template walked live, and one
+   thing to do. Top left on a desk; the bottom of a phone. */
+#landing {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 60;
+  max-width: 23rem;
+  padding: 16px 18px 14px;
+  border-radius: 14px;
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 32px rgba(70, 52, 28, 0.16);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+#landing .mark {
+  display: block;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+#landing .mark i {
+  font-style: normal;
+  color: var(--accent);
+}
+#landing p {
+  margin: 0 0 12px;
+  color: var(--ink-soft);
+}
+#landing .acts {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#landing a {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+#landing a.go {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+@media (max-width: 560px) {
+  #landing {
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    max-width: none;
+  }
+  #landing ~ #app-root #hint,
+  body:has(#landing) #hint {
+    display: none;
+  }
+}

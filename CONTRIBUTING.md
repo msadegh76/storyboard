@@ -114,9 +114,9 @@ is verified by hand. Please check:
 - [ ] `pnpm build` passes — it typechecks the wall and the server first
 - [ ] `pnpm test` is green
 - [ ] The console is clean on a fresh load
-- [ ] The example decks still present: `examples/onboarding`,
-      `examples/hello-wall` and `examples/lighthouse-bakery` — point
-      `deck.config.js` at each in turn
+- [ ] The example decks still present — point `deck.config.js` at
+      each directory under `examples/` in turn; the four templates a
+      hosted wall offers are among them
 - [ ] The walk still works end to end: `→` through every stop, `Home`,
       `End`, a click on the plaster, and a click on a card
 - [ ] `P` opens the presenter window, it follows the wall, and the

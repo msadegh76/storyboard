@@ -24,6 +24,10 @@ if (!existsSync(shellFile)) {
 }
 if (!config.ownerEmail && config.signup !== "open")
   console.warn("storyboard: OWNER_EMAIL is not set and SIGNUP is not open — nobody can sign in");
+if (!config.mail.resendKey)
+  console.warn(
+    "storyboard: no RESEND_API_KEY — sign-in links will be printed here, not mailed. Fine for one owner; set it before opening the wall to others. See README, Mail.",
+  );
 
 mkdirSync(config.dataDir, { recursive: true });
 const html = readFileSync(shellFile, "utf8");

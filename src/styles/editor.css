@@ -851,3 +851,44 @@ a.ed-mini {
   font-style: normal;
   color: var(--ink-soft);
 }
+
+/* ---- a phone: no panel, one note ---- */
+.ed-phone {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 80;
+  padding: 16px 44px 16px 18px;
+  border-radius: 14px;
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 32px rgba(70, 52, 28, 0.18);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.ed-phone b {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.ed-phone p {
+  margin: 0 0 12px;
+  color: var(--ink-soft);
+}
+.ed-phone .ed-acts {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ed-phone a {
+  font-size: 13px;
+  color: var(--ink);
+}
+.ed-phone .ed-x {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}

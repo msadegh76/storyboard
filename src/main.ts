@@ -76,7 +76,16 @@ function offerEdit(source: DeckSource) {
   el("app-root")?.append(a);
 }
 
+/* The reveal — press A and the wall turns out to have been "generated"
+   in a chat — is the project's own joke, for the project's own demo. A
+   deck someone publishes to their audience is not the place for it, so
+   on a host the markup goes before anyone can find the key. */
+function noReveal() {
+  for (const n of document.querySelectorAll(".hint-reveal, #reveal, #reveal-shimmer")) n.remove();
+}
+
 function boot(source: DeckSource) {
+  if (source.mode === "hosted") noReveal();
   let deck: ReturnType<typeof normalizeDeck>;
   try {
     deck = normalizeDeck(source.deck);
@@ -135,7 +144,7 @@ function boot(source: DeckSource) {
     resolveStory();
     spaceOutCards();
     initControls();
-    initReveal();
+    if (source.mode !== "hosted") initReveal();
     initPresent();
     initDebug();
     offerEdit(source);

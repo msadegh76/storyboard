@@ -34,6 +34,8 @@ body {
   inset: 0;
   display: block;
   cursor: default;
+  /* a swipe walks the wall; the browser must not scroll or go back on it */
+  touch-action: none;
 }
 
 

@@ -54,6 +54,16 @@ const CSS = `
   ul.decks .acts a.go { background:var(--accent); border-color:var(--accent); color:#fff; }
   code { font-family: ui-monospace, Menlo, monospace; font-size: 0.88em; background: var(--panel); padding: 0.1em 0.35em; border-radius: 3px; }
   .token { font-family: ui-monospace, Menlo, monospace; word-break: break-all; padding: 0.8rem 1rem; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+  form.new { display:block; }
+  form.new input[type=text] { width: 100%; max-width: 28rem; margin-bottom: 0.8rem; }
+  .tpls { display:grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.6rem; margin: 0 0 1rem; }
+  .tpl { display:block; padding: 0.7rem 0.9rem; border:1px solid var(--line); border-radius: 8px; background: var(--panel); cursor: pointer; }
+  .tpl:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .tpl input { margin: 0 0.4rem 0 0; vertical-align: -1px; }
+  .tpl b { font-weight: 600; }
+  .tpl span { display:block; font-size: 0.8rem; color: var(--ink-soft); margin-top: 0.15rem; }
+  footer.foot { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: 0.8rem; color: var(--ink-soft); display:flex; gap: 1rem; flex-wrap: wrap; }
+  footer.foot a { color: var(--ink-soft); }
 `;
 
 /**
@@ -122,7 +132,7 @@ ${hint}`,
  */
 
 /**
- * @param {{ user: { email: string }, decks: DeckRow[], examples: { name: string, title: string }[], token?: string, error?: string }} o
+ * @param {{ user: { email: string }, decks: DeckRow[], templates: { name: string, title: string, blurb: string }[], error?: string }} o
  */
 export function homePage(o) {
   const rows = o.decks
@@ -141,32 +151,69 @@ export function homePage(o) {
     })
     .join("\n");
 
-  const options = [`<option value="blank">A bare wall</option>`]
-    .concat(o.examples.map((e) => `<option value="${esc(e.name)}">${esc(e.title)} (example)</option>`))
-    .join("");
-
-  const token = o.token
-    ? `<h2>A token for pnpm push</h2><p>Shown once. Put it in <code>STORYBOARD_TOKEN</code> where you run <code>pnpm push</code>.</p><div class="token">${esc(o.token)}</div>`
-    : "";
+  const choices = [{ name: "blank", title: "A bare wall", blurb: "Nothing on it yet. Press E and add the first slide." }]
+    .concat(o.templates)
+    .map(
+      (t, i) =>
+        `<label class="tpl"><input type="radio" name="from" value="${esc(t.name)}"${i === 0 ? " checked" : ""} /><b>${esc(t.title)}</b><span>${esc(t.blurb)}</span></label>`,
+    )
+    .join("\n");
 
   return layout(
     "Your decks",
     `<h1>Your decks</h1>
 ${o.error ? `<p class="bad-note">${esc(o.error)}</p>` : ""}
-${o.decks.length ? `<ul class="decks">${rows}</ul>` : `<p class="note">Nothing yet. A deck starts as a bare wall, or as one of the examples.</p>`}
+${o.decks.length ? `<ul class="decks">${rows}</ul>` : `<p class="note">Nothing yet. A deck starts as a bare wall, or from one of the templates below.</p>`}
 <h2>New deck</h2>
-<form method="post" action="/api/decks">
+<form class="new" method="post" action="/api/decks">
   <input type="text" name="title" placeholder="What it is called" maxlength="200" required />
-  <select name="from">${options}</select>
+  <div class="tpls">${choices}</div>
   <button class="go" type="submit">Start it</button>
 </form>
 <p class="note">It opens on the wall with the editor beside it. Nobody sees it until you publish.</p>
-${token}
-<h2>From a checkout</h2>
-<p class="note">A deck written in a file can be put here with <code>pnpm push</code>. It needs a token:</p>
-<form method="post" action="/api/auth/token"><button class="quiet" type="submit">Make a token</button></form>`,
+<footer class="foot"><a href="/welcome">The wall, as a visitor sees it</a><a href="/developers">For developers</a></footer>`,
     { user: o.user },
   );
+}
+
+/**
+ * The corner for people with a terminal: a token, and how to push a
+ * deck written in a file. Off the home page, where it read as the
+ * whole product being for developers.
+ * @param {{ user: { email: string }, token?: string }} o
+ */
+export function developersPage(o) {
+  const token = o.token
+    ? `<h2>Your token</h2><p>Shown once. Put it in <code>STORYBOARD_TOKEN</code> where you run <code>pnpm push</code>.</p><div class="token">${esc(o.token)}</div>`
+    : "";
+  return layout(
+    "For developers",
+    `<h1>For developers</h1>
+<p>A deck can also be written as a file — <code>deck.config.js</code> in a checkout of Storyboard — and put on this wall from the terminal, pictures and all:</p>
+<p><code>STORYBOARD_TOKEN=… pnpm push --to ${esc(o.token ? "this wall's address" : "https://…")} --publish</code></p>
+<p class="note">It needs a token, which stands in for your sign-in for a year and can be made here as often as you like.</p>
+${token}
+<form method="post" action="/api/auth/token"><button class="quiet" type="submit">Make a token</button></form>
+<footer class="foot"><a href="/">Your decks</a></footer>`,
+    { user: o.user },
+  );
+}
+
+/**
+ * What a visitor reads over the landing wall: what this is, and the
+ * one thing to do next. Laid over the wall by shell.js; the wall itself
+ * is one of the templates, walked live. Styles live with the HUD's.
+ * @param {{ signedIn: boolean }} o
+ */
+export function landingAside(o) {
+  const cta = o.signedIn
+    ? `<a class="go" href="/">Your decks</a>`
+    : `<a class="go" href="/signin">Make your own</a><a href="/signin">Sign in</a>`;
+  return `<aside id="landing" aria-label="About Storyboard">
+  <b class="mark">Storyboard<i>&nbsp;•</i></b>
+  <p>A slide deck presented as a gallery wall: index cards pinned to plaster, headings painted on, walked with the arrow keys or a swipe. This one is a bakery that does not exist. Walk it, then make your own.</p>
+  <div class="acts">${cta}</div>
+</aside>`;
 }
 
 /** @param {string} title @param {string} text @param {{ user?: { email: string } | null, back?: string }} [o] */

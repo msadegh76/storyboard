@@ -286,7 +286,7 @@ test("forms: a deck deleted from the home page, a token shown once, a next that 
   const page = await call("/api/auth/token", { method: "POST", cookie: owner, form: {} });
   assert.equal(page.status, 200);
   const html = await page.text();
-  assert.match(html, /A token for pnpm push/);
+  assert.match(html, /Your token/);
   const token = /class="token">([^<]+)</.exec(html)?.[1];
   assert.ok(token);
   assert.equal((await call("/api/decks", { bearer: token })).status, 200);
@@ -312,9 +312,29 @@ test("the sign-in page itself, and where a signed-in person is sent", async () =
   assert.equal(already.headers.get("location"), "/");
   const home = await call("/home", { cookie: owner });
   assert.equal(home.status, 200);
-  const out = await call("/");
-  assert.equal(out.status, 302);
-  assert.equal(out.headers.get("location"), "/signin");
+  const homeHtml = await home.text();
+  assert.match(homeHtml, /Product demo/);
+  assert.doesNotMatch(homeHtml, /Make a token/, "the developers' corner is off the home page");
+
+  // a visitor's first screen is a wall with the product's words over it
+  const front = await call("/");
+  assert.equal(front.status, 200);
+  const frontHtml = await front.text();
+  assert.match(frontHtml, /id="landing"/);
+  assert.match(frontHtml, /Make your own/);
+  assert.match(frontHtml, /"landing":true/);
+  assert.match(frontHtml, /"editable":false/);
+  assert.match(frontHtml, /Lighthouse Bakery/);
+  const welcome = await call("/welcome", { cookie: owner });
+  assert.equal(welcome.status, 200);
+  assert.match(await welcome.text(), /Your decks/, "signed in, the front door points home");
+  const signedInRoot = await call("/", { cookie: owner });
+  assert.match(await signedInRoot.text(), /<h1>Your decks<\/h1>/);
+
+  const devs = await call("/developers", { cookie: owner });
+  assert.equal(devs.status, 200);
+  assert.match(await devs.text(), /Make a token/);
+  assert.equal((await call("/developers")).status, 302);
   const nowhere = await call("/nothing/here");
   assert.equal(nowhere.status, 404);
   assert.match(await nowhere.text(), /Not here/);

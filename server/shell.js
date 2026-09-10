@@ -33,6 +33,7 @@ const json = (/** @type {unknown} */ v) =>
  * @param {string} [page.canonical] the public address, for previews
  * @param {boolean} [page.noindex]
  * @param {boolean} [page.rootAssets] rewrite the build's ./assets to /assets, for a page served a directory deep
+ * @param {string} [page.extra] markup laid over the wall — the landing page's own words
  */
 export function renderShell(html, page) {
   let out = html;
@@ -50,5 +51,7 @@ export function renderShell(html, page) {
   }
   head.push(`<meta property="og:type" content="website" />`);
   head.push(`<script type="application/json" id="deck">${json(page.payload)}</script>`);
-  return out.replace("</head>", `    ${head.join("\n    ")}\n  </head>`);
+  out = out.replace("</head>", `    ${head.join("\n    ")}\n  </head>`);
+  if (page.extra) out = out.replace("</body>", `${page.extra}\n  </body>`);
+  return out;
 }

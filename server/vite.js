@@ -20,7 +20,7 @@ import { diskStorage } from "./storage.js";
 import { logMailer } from "./mail.js";
 import { createApp } from "./app.js";
 
-const HOSTED = /^\/(api|d|edit|a|signin|home)(\/|\?|$)/;
+const HOSTED = /^\/(api|d|edit|a|signin|home|welcome|developers)(\/|\?|$)/;
 
 /** @returns {import("vite").Plugin} */
 export function hosted() {

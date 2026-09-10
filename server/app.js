@@ -24,8 +24,8 @@ import { makeDecks, HttpError } from "./decks.js";
 import { replaceSlide, insertSlide, removeSlide, moveSlide, setFields } from "./ops.js";
 import { ValidationError } from "./validate.js";
 import { renderShell } from "./shell.js";
-import { signinPage, homePage, messagePage } from "./pages.js";
-import { EXAMPLES, isExample, readExample, importPictures, publicReader } from "./examples.js";
+import { signinPage, homePage, messagePage, developersPage, landingAside } from "./pages.js";
+import { TEMPLATES, isExample, readExample, importPictures, publicReader } from "./examples.js";
 
 /** @typedef {import("../src/deck/types.ts").Deck} Deck */
 /** @typedef {import("../src/deck/types.ts").Slide} Slide */
@@ -244,20 +244,56 @@ export function createApp({ config, db, storage, mail, shell }) {
     const user = userOf(c);
     if (!user) throw new HttpError(401, "sign in first");
     const token = auth.createToken(user.id);
-    if (isForm(c))
-      return c.html(homePage({ user, decks: decks.list(user.id), examples: EXAMPLES, token }));
+    if (isForm(c)) return c.html(developersPage({ user, token }));
     return c.json({ token });
   });
 
-  /* ---- home ---- */
+  /* ---- home, and the front door ---- */
 
   const home = (/** @type {Context} */ c, /** @type {{ error?: string }} */ extra = {}) => {
     const user = userOf(c);
     if (!user) return c.redirect("/signin");
-    return c.html(homePage({ user, decks: decks.list(user.id), examples: EXAMPLES, ...extra }));
+    return c.html(homePage({ user, decks: decks.list(user.id), templates: TEMPLATES, ...extra }));
   };
-  app.get("/", (c) => home(c));
+
+  /* A visitor's first screen is a wall, not a form: one of the
+     templates, walked live, with a few words over it and one thing to
+     do. Its pictures are the checkout's own under /demo, so the paths
+     resolve from the root with no asset base at all. */
+  const landing = async (/** @type {Context} */ c) => {
+    const deck = await readExample(config.root, "lighthouse-bakery");
+    const html = renderShell(await shell(c.req.path), {
+      payload: {
+        deck,
+        id: "welcome",
+        slug: "welcome",
+        title: deck.title,
+        rev: 0,
+        editable: false,
+        assetBase: "",
+        url: `${config.baseUrl}/`,
+        visibility: "public",
+        published: null,
+        dirty: false,
+        landing: true,
+      },
+      title: "Storyboard — a slide deck presented as a gallery wall",
+      description: "Index cards pinned to plaster, headings painted on, walked with the arrow keys. Make your own and publish it at a link.",
+      canonical: `${config.baseUrl}/`,
+      rootAssets: !config.dev,
+      extra: landingAside({ signedIn: !!userOf(c) }),
+    });
+    return c.html(html, 200, { "cache-control": "public, max-age=300", vary: "Cookie" });
+  };
+  app.get("/", (c) => (userOf(c) ? home(c) : landing(c)));
   app.get("/home", (c) => home(c));
+  app.get("/welcome", landing);
+
+  app.get("/developers", (c) => {
+    const user = userOf(c);
+    if (!user) return c.redirect("/signin?next=%2Fdevelopers");
+    return c.html(developersPage({ user }));
+  });
 
   /* ---- the wall, published and draft ---- */
 
@@ -396,7 +432,7 @@ export function createApp({ config, db, storage, mail, shell }) {
       if (!title) throw new HttpError(400, "a deck needs a title");
       let deck = /** @type {Deck} */ ({ title, slides: [] });
       if (from !== "blank") {
-        if (!isExample(from)) throw new HttpError(400, `no example called ${from}`);
+        if (!isExample(config.root, from)) throw new HttpError(400, `no example called ${from}`);
         deck = { ...(await readExample(config.root, from)), title };
       }
       const row = decks.create(user.id, { title, deck });

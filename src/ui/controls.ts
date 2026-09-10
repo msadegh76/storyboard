@@ -9,6 +9,7 @@ import { ensureAudio } from "../scene/sound.js";
 import { el } from "../util.js";
 import {
   beats,
+  storyAt,
   storyGo,
   storyNext,
   storyPrev,
@@ -78,7 +79,37 @@ function transcript() {
   if (shown) el("transcript")?.scrollTo(0, 0);
 }
 
+/* A phone has no arrow keys. A swipe walks the wall, a tap near the
+   left edge goes back — a tap anywhere else already goes forward — and
+   the hint says so instead of naming keys nobody has. */
+const SWIPE_PX = 40;
+const BACK_EDGE = 0.22; // of the width
+
+function touchHint() {
+  const hint = el("hint");
+  if (!hint || !matchMedia("(pointer: coarse)").matches) return;
+  const say = (text: string) => {
+    const s = document.createElement("span");
+    s.textContent = text;
+    return s;
+  };
+  const dot = () => {
+    const e = document.createElement("em");
+    e.textContent = "·";
+    return e;
+  };
+  hint.replaceChildren(
+    say("swipe to walk the wall"),
+    dot(),
+    say("tap the left edge to go back"),
+    dot(),
+    say("tap a card to open it"),
+  );
+}
+
 export function initControls() {
+  touchHint();
+
   addEventListener("keydown", (e) => {
     if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
 
@@ -147,11 +178,26 @@ export function initControls() {
     const d = down;
     down = null;
     if (claim?.()) return;
-    if (!d || e.target !== canvas) return;
-    if (Math.hypot(e.clientX - d.x, e.clientY - d.y) >= 6) return;
+    if (!d) return;
+    const dx = e.clientX - d.x;
+    const dy = e.clientY - d.y;
+    // a finger drawn across the wall, mostly sideways: a step, not a click
+    if (e.pointerType === "touch" && Math.abs(dx) >= SWIPE_PX && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) storyNext();
+      else storyPrev();
+      hideHint();
+      return;
+    }
+    if (e.target !== canvas) return;
+    if (Math.hypot(dx, dy) >= 6) return;
     const hit = cardAt(e.clientX, e.clientY);
     const slide = hit?.userData.p.slide;
-    if (slide != null) storyGoToSlide(slide);
+    const here = beats[storyAt()]?.slide;
+    /* On a phone the framed card fills the screen, so the left edge
+       is a control before it is a card. And a tap on the card you are
+       already standing on is a step, not a request to stand there. */
+    if (e.pointerType === "touch" && e.clientX < innerWidth * BACK_EDGE) storyPrev();
+    else if (slide != null && slide !== here) storyGoToSlide(slide);
     else storyNext();
     hideHint();
   });

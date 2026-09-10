@@ -1777,10 +1777,52 @@ function toggle() {
   if (open) render();
 }
 
+/* A phone, as opposed to a small window on a desk: a touch screen
+   without room beside the wall, or a screen too narrow for the panel
+   and any wall at all. A 700-pixel laptop window keeps its panel. */
+const onAPhone = () =>
+  (matchMedia("(pointer: coarse)").matches && innerWidth < 900) || innerWidth < 560;
+
+function phoneNotice(publishedUrl: string | null) {
+  const box = h("aside", "ed-phone");
+  box.setAttribute("role", "note");
+  box.append(
+    h("b", "", "Edit this on a laptop"),
+    h(
+      "p",
+      "",
+      "The wall is edited beside itself, and a phone has no room beside it. Open this same link on a bigger screen — the deck is already saved here.",
+    ),
+  );
+  const acts = h("div", "ed-acts");
+  const copy = button("Copy the link", "ed-go", "Copy this page's address", () => {
+    navigator.clipboard
+      ?.writeText(location.href)
+      .then(() => (copy.textContent = "Copied"))
+      .catch(() => (copy.textContent = location.href));
+  });
+  acts.append(copy);
+  if (publishedUrl) {
+    const view = h("a", "", "See the published wall");
+    view.href = publishedUrl;
+    acts.append(view);
+  }
+  box.append(acts, button("×", "ed-x", "Dismiss", () => box.remove()));
+  document.body.append(box);
+}
+
 /** Open the editor with `e`. Loaded only where the deck may be edited — see the note at the top. */
 export function initEditor() {
   const source = currentSource();
   store = source.hosted ? new ApiStore(source.hosted) : new FileStore();
+
+  /* The wall is edited beside itself, and a phone has no room beside
+     it: the panel would cover all but a sliver. Say so, once, and
+     offer the link for a bigger screen. The draft is already here. */
+  if (store.kind === "api" && onAPhone()) {
+    phoneNotice(source.hosted?.published ? source.hosted.url : null);
+    return;
+  }
 
   // a key nobody was told about is a key nobody presses
   console.info("storyboard: press e to edit this slide");

@@ -35,6 +35,8 @@ export interface Hosted {
   published: { rev: number; at: string } | null;
   /** The draft differs from what is published. */
   dirty: boolean;
+  /** The front door: a template walked live, with the product's words over it. */
+  landing?: boolean;
 }
 
 export interface DeckSource {

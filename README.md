@@ -79,11 +79,12 @@ a `gh-pages` branch and point Pages at it.
 
 The second way is a small server of our own, under [`server/`](server),
 for decks written in a browser rather than in a file: sign in with a
-link by email, start a deck as a bare wall or from an example, edit it
+link by email, start a deck as a bare wall or from a template, edit it
 on the wall with the same panel, and press **Publish**. Nobody sees a
 deck until its owner does that; what they see afterwards is at
 `/d/<address>`, cacheable, with the text version and the link previews
-filled in.
+filled in. A visitor who is not signed in meets a wall at `/`, walked
+live, with a few words over it and one button.
 
 ```bash
 pnpm build
@@ -95,6 +96,17 @@ OWNER_EMAIL=you@example.com pnpm serve     # http://localhost:8787
 - **Sign-in links** are mailed when `RESEND_API_KEY` (and `MAIL_FROM`)
   are set, and printed to the server's log when they are not — which
   is enough to run a wall for yourself with no mail configured at all.
+  See [Mail](#mail) before letting anyone else in.
+- **Templates.** A new deck starts bare or from one of the decks under
+  [`examples/`](examples) that are shaped like the decks people make:
+  a product demo, a roadmap, an investor update, a portfolio, and the
+  bakery talk. Their pictures are copied in as the new deck's own.
+- **On a phone** a published wall is walked by swiping, and a tap near
+  the left edge goes back. The editor needs room beside the wall, so on
+  a phone it says so and offers the link for a laptop instead of a
+  panel over everything.
+- **The easter egg** (`A`) is the project's own joke and stays on the
+  file-mode wall and static builds. A hosted deck never carries it.
 - **Who may sign in:** `OWNER_EMAIL`, always; anyone who already has an
   account; and, with `SIGNUP=open`, anyone.
 - **Pictures** go in through [sharp](https://sharp.pixelplumbing.com):
@@ -123,7 +135,8 @@ docker run -p 8787:8787 -v storyboard-data:/data \
 ```
 
 A deck written in a file can be put on a wall too. Make a token on the
-wall's home page, then from your checkout:
+wall's **For developers** page (linked from the foot of the home page),
+then from your checkout:
 
 ```bash
 STORYBOARD_TOKEN=… pnpm push --to https://wall.example --publish
@@ -238,6 +251,27 @@ JavaScript; you get the autocomplete anyway. Write `deck.config.ts`
 instead if you would rather, and it works the same — the editor
 included. (Rename it while `pnpm dev` is running and restart the
 server; Vite keeps the old path until you do.)
+
+### Mail
+
+A hosted wall signs people in by email, so before anyone but you uses
+it, it needs a way to send one. It speaks to [Resend](https://resend.com):
+
+1. Make a Resend account and add the domain you send from (say
+   `mail.example.com`). Resend shows the DNS records to add; wait for
+   them to verify.
+2. Make an API key.
+3. Start the server with both:
+
+```bash
+RESEND_API_KEY=re_… MAIL_FROM="Storyboard <wall@mail.example.com>" OWNER_EMAIL=you@example.com pnpm serve
+```
+
+Send yourself a link and check it arrives — and check a Gmail and an
+Outlook address too, since those are the ones that go to spam first.
+Without a key the server says so at startup and prints every link to
+its log, which is right for a wall with one owner and wrong for one
+with any more.
 
 ### The three kinds of card
 

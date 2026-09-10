@@ -6,6 +6,7 @@
    through the same door an upload goes through, so the new deck owns
    its own copies and nothing points back at public/. */
 
+import { existsSync, readdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { readDeckModule } from "../tools/deck-json.mjs";
@@ -13,17 +14,36 @@ import { readDeckModule } from "../tools/deck-json.mjs";
 /** @typedef {import("../src/deck/types.ts").Deck} Deck */
 /** @typedef {import("../src/deck/types.ts").Card} Card */
 
-export const EXAMPLES = [
-  { name: "hello-wall", title: "Hello, wall" },
-  { name: "lighthouse-bakery", title: "Lighthouse Bakery" },
-  { name: "onboarding", title: "Getting started" },
+/* The decks a new one can start from, in the order the home page
+   offers them. Shaped like the decks people make, not like the tour
+   of the tool — that one stays under examples/ for the docs. */
+export const TEMPLATES = [
+  { name: "product-demo", title: "Product demo", blurb: "The problem, who it is for, the product in three captures, the price, what is next. Ten stops." },
+  { name: "roadmap", title: "Roadmap", blurb: "A year on one wall: a heading per quarter and three bets under each." },
+  { name: "investor-update", title: "Investor update", blurb: "The number, the wins, the misses, the runway, the asks. Eight stops, two minutes." },
+  { name: "portfolio", title: "Portfolio", blurb: "Six pieces of work as prints on a dark wall, and one card about you." },
+  { name: "lighthouse-bakery", title: "Lighthouse Bakery", blurb: "A full-length talk of fifteen stops, about a bakery that does not exist." },
 ];
 
-export const isExample = (/** @type {string} */ name) => EXAMPLES.some((e) => e.name === name);
+/** @type {string[] | null} */
+let known = null;
+
+/** Every deck under examples/, read once. A template is one of these; so is the tour. */
+export function exampleNames(/** @type {string} */ root) {
+  if (!known)
+    known = readdirSync(path.join(root, "examples"), { withFileTypes: true })
+      .filter((d) => d.isDirectory() && existsSync(path.join(root, "examples", d.name, "deck.config.js")))
+      .map((d) => d.name)
+      .sort();
+  return known;
+}
+
+export const isExample = (/** @type {string} */ root, /** @type {string} */ name) =>
+  exampleNames(root).includes(name);
 
 /** @param {string} root @param {string} name */
 export async function readExample(root, name) {
-  if (!isExample(name)) throw new Error(`no example called ${name}`);
+  if (!isExample(root, name)) throw new Error(`no example called ${name}`);
   return readDeckModule(path.join(root, "examples", name, "deck.config.js"));
 }
 
