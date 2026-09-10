@@ -58,13 +58,20 @@ export function initPublish(store: ApiStore, openSheet: () => void): HTMLElement
 
   const refresh = () => {
     const p = store.published;
-    word.textContent = !p
-      ? "Never published"
-      : store.dirty
-        ? "Unpublished changes"
-        : `Published ${ago(p.at)}`;
+    word.textContent = store.guest
+      ? "Yours for a week"
+      : !p
+        ? "Never published"
+        : store.dirty
+          ? "Unpublished changes"
+          : `Published ${ago(p.at)}`;
     word.classList.toggle("dirty", !p || store.dirty);
-    word.title = p ? `Published version ${p.rev}` : "Nobody can see this deck yet";
+    word.title = store.guest
+      ? "A guest's wall: give an email to keep it"
+      : p
+        ? `Published version ${p.rev}`
+        : "Nobody can see this deck yet";
+    go.textContent = store.guest ? "Keep it…" : "Publish…";
   };
   const was = store.onChange;
   store.onChange = () => {
@@ -114,6 +121,7 @@ const slugOf = (s: string) =>
 
 export function renderPublish(ctx: PublishContext) {
   const { store, body, foot } = ctx;
+  if (store.guest) return renderKeep(ctx);
   const first = !store.everPublished;
   ctx.setHead(first ? "Publish for the first time" : "Publish", true);
 
@@ -277,4 +285,57 @@ export function renderPublish(ctx: PublishContext) {
     publish.title = "Everything is already published";
   }
   foot.append(ctx.button("Cancel", "", "Back to the slide", ctx.close), publish);
+}
+
+/* A guest's Publish: the wall is written, and this is the moment an
+   address is worth giving. One field. The link that comes back makes
+   the wall theirs, publishes it, and lands on it. */
+function renderKeep(ctx: PublishContext) {
+  const { store, body, foot } = ctx;
+  ctx.setHead("Keep this wall", true);
+
+  body.append(
+    h("p", "ed-pub-changes", "Your wall is written. To put it at a link, and keep it past this week, it needs an address to belong to."),
+  );
+  const field = h("div", "ed-f");
+  field.append(h("label", "", "Your email"));
+  const input = h("input");
+  input.type = "email";
+  input.placeholder = "you@example.com";
+  input.autocomplete = "email";
+  field.append(input);
+  body.append(field);
+  body.append(
+    h("p", "ed-hint", "A link comes back — no password. Opening it publishes the wall and shows you the link to share. Nothing is sent anywhere else."),
+  );
+  const sent = h("p", "ed-pub-changes");
+  sent.hidden = true;
+  body.append(sent);
+
+  const go = ctx.button("Send me the link", "ed-go", "Keep the wall, and publish it", async () => {
+    const email = input.value.trim();
+    if (!/^[^\s@]+@[^\s@]+$/.test(email)) {
+      ctx.tell("That does not look like an email address", true);
+      input.focus();
+      return;
+    }
+    go.disabled = true;
+    try {
+      const out = await store.keep(email);
+      sent.hidden = false;
+      sent.textContent =
+        out.how === "log"
+          ? "The link is in the server's log (no mail is set up on this wall). Open it, and the wall is published."
+          : `Sent to ${email}. Open the link, and the wall is published.`;
+      ctx.tell("");
+    } catch (err) {
+      go.disabled = false;
+      ctx.tell(`Could not send: ${err instanceof Error ? err.message : err}`, true);
+    }
+  });
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") go.click();
+  });
+  foot.append(ctx.button("Not yet", "", "Back to the slide", ctx.close), go);
+  setTimeout(() => input.focus(), 50);
 }

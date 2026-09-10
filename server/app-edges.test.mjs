@@ -321,10 +321,11 @@ test("the sign-in page itself, and where a signed-in person is sent", async () =
   assert.equal(front.status, 200);
   const frontHtml = await front.text();
   assert.match(frontHtml, /id="landing"/);
-  assert.match(frontHtml, /Make your own/);
+  assert.match(frontHtml, /Sign in/, "with signup closed, the one thing to do is sign in");
+  assert.doesNotMatch(frontHtml, /Try it, no account/);
   assert.match(frontHtml, /"landing":true/);
   assert.match(frontHtml, /"editable":false/);
-  assert.match(frontHtml, /Lighthouse Bakery/);
+  assert.match(frontHtml, /Product demo/, "the landing walks the product demo");
   const welcome = await call("/welcome", { cookie: owner });
   assert.equal(welcome.status, 200);
   assert.match(await welcome.text(), /Your decks/, "signed in, the front door points home");
@@ -341,6 +342,78 @@ test("the sign-in page itself, and where a signed-in person is sent", async () =
   const apiNowhere = await call("/api/nothing");
   assert.equal(apiNowhere.status, 404);
   assert.match(apiNowhere.headers.get("content-type"), /json/);
+});
+
+test("a stranger can try the wall first, and keep it by giving an address", async () => {
+  const open = build({ signup: "open" });
+  const as = (route, init = {}) => open.request(`${BASE}${route}`, { redirect: "manual", ...init });
+  const cookieOf = (res) => /storyboard_session=([^;]+)/.exec(res.headers.get("set-cookie") || "")?.[1];
+
+  // try it: a guest session and a wall from the template, straight into the editor
+  const tried = await as("/try");
+  assert.equal(tried.status, 302);
+  assert.match(tried.headers.get("location"), /^\/edit\/product-demo/);
+  const guest = cookieOf(tried);
+  assert.ok(guest, "a guest session");
+  const editUrl = tried.headers.get("location");
+  const editor = await as(editUrl, { headers: { cookie: `storyboard_session=${guest}` } });
+  assert.equal(editor.status, 200);
+  const html = await editor.text();
+  assert.match(html, /"guest":true/);
+  assert.match(html, /"editable":true/);
+
+  // the same guest pressing Try again lands on the same wall, not a second one
+  const again = await as("/try", { headers: { cookie: `storyboard_session=${guest}` } });
+  assert.equal(again.headers.get("location"), editUrl);
+  const list = await (await as("/api/decks", { headers: { cookie: `storyboard_session=${guest}` } })).json();
+  assert.equal(list.decks.length, 1);
+  const deck = list.decks[0];
+
+  // a guest edits like anyone, but cannot put the wall at a link yet
+  const edit1 = await as(`/api/decks/${deck.id}/slides/1`, { method: "PUT", headers: { origin: BASE, cookie: `storyboard_session=${guest}`, "content-type": "application/json" }, body: JSON.stringify({ slide: { mural: "Mine now" }, rev: deck.rev }) });
+  assert.equal(edit1.status, 200);
+  const pub = await as(`/api/decks/${deck.id}/publish`, { method: "POST", headers: { origin: BASE, cookie: `storyboard_session=${guest}`, "content-type": "application/json" }, body: "{}" });
+  assert.equal(pub.status, 403);
+  assert.equal((await as(`/d/${deck.slug}`)).status, 404, "nobody sees it");
+  const home = await as("/", { headers: { cookie: `storyboard_session=${guest}` } });
+  assert.match(await home.text(), /guest/);
+
+  // keep it: the link that comes back publishes the wall and lands on it
+  const asked = await as("/api/auth/link", { method: "POST", headers: { origin: BASE, cookie: `storyboard_session=${guest}`, "content-type": "application/json" }, body: JSON.stringify({ email: "keeper@wall.test", next: `/edit/${deck.slug}?publish=1` }) });
+  assert.equal(asked.status, 200);
+  const link = links.pop();
+  assert.match(link, /publish%3D1/);
+  const back = await as(link.replace(BASE, ""), { headers: { cookie: `storyboard_session=${guest}` } });
+  assert.equal(back.status, 302);
+  assert.equal(back.headers.get("location"), `/d/${deck.slug}`);
+  const owner = cookieOf(back);
+  assert.ok(owner);
+  const page = await as(`/d/${deck.slug}`);
+  assert.equal(page.status, 200, "published on the way in");
+  assert.match(await page.text(), /Mine now/);
+  const mine = await (await as("/api/decks", { headers: { cookie: `storyboard_session=${owner}` } })).json();
+  assert.equal(mine.decks.length, 1);
+  assert.equal(mine.decks[0].id, deck.id, "the same wall, now theirs");
+  const who = await as("/", { headers: { cookie: `storyboard_session=${owner}` } });
+  assert.match(await who.text(), /keeper@wall\.test/);
+  assert.equal((await as("/api/decks", { headers: { cookie: `storyboard_session=${guest}` } })).status, 200, "the old session is the same person now");
+
+  // a second guest who already has an account: the wall moves over to it
+  const tried2 = await as("/try/roadmap");
+  const guest2 = cookieOf(tried2);
+  const asked2 = await as("/api/auth/link", { method: "POST", headers: { origin: BASE, cookie: `storyboard_session=${guest2}`, "content-type": "application/json" }, body: JSON.stringify({ email: "keeper@wall.test" }) });
+  assert.equal(asked2.status, 200);
+  const back2 = await as(links.pop().replace(BASE, ""), { headers: { cookie: `storyboard_session=${guest2}` } });
+  const merged = cookieOf(back2);
+  const both = await (await as("/api/decks", { headers: { cookie: `storyboard_session=${merged}` } })).json();
+  assert.equal(both.decks.length, 2, "the roadmap joined the first wall under one account");
+  assert.equal((await as("/api/decks", { headers: { cookie: `storyboard_session=${guest2}` } })).status, 401, "the merged guest is gone");
+
+  // no guests where nobody may sign up
+  const closed = await call("/try");
+  assert.equal(closed.status, 302);
+  assert.equal(closed.headers.get("location"), "/signin");
+  assert.equal((await as("/try/not-a-template")).status, 404);
 });
 
 test("someone else's deck is not there, even by id, even with a token", async () => {

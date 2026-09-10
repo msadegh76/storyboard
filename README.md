@@ -83,8 +83,15 @@ link by email, start a deck as a bare wall or from a template, edit it
 on the wall with the same panel, and press **Publish**. Nobody sees a
 deck until its owner does that; what they see afterwards is at
 `/d/<address>`, cacheable, with the text version and the link previews
-filled in. A visitor who is not signed in meets a wall at `/`, walked
-live, with a few words over it and one button.
+filled in. A visitor who is not signed in meets a wall at `/` that
+  walks itself for three stops, with a few words over it and one
+  button: **Try it, no account**.
+- **Guests.** With `SIGNUP=open`, that button gives a stranger a wall
+  to write on straight away — a guest account made on the spot, a deck
+  from a template, and the editor — and asks for an email only at
+  **Keep it**, which is Publish for a guest. The link that comes back
+  makes the wall theirs and publishes it. A guest's wall lasts a week
+  on that browser; unclaimed guests are swept after a month.
 
 ```bash
 pnpm build

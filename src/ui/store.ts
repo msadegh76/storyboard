@@ -198,10 +198,13 @@ export class ApiStore implements DeckStore {
   title: string;
   url: string;
   visibility: Visibility;
+  /** No address yet: the wall is a guest's until an email claims it. */
+  readonly guest: boolean;
   /** Told after any answer that moved the deck on. The publish bar listens. */
   onChange: (() => void) | null = null;
 
   constructor(h: Hosted) {
+    this.guest = !!h.guest;
     this.id = h.id;
     this.rev = h.rev;
     this.dirty = h.dirty;
@@ -276,6 +279,19 @@ export class ApiStore implements DeckStore {
   /** Whether the draft has ever been published. */
   get everPublished() {
     return this.published != null;
+  }
+
+  /**
+   * A guest keeping their wall: ask for the link that makes it theirs.
+   * The link publishes the wall on the way in and lands on it.
+   */
+  async keep(email: string) {
+    const res = await fetch("/api/auth/link", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, next: `/edit/${this.slug}?publish=1` }),
+    });
+    return answerOf<{ ok: true; how: "log" | "resend" }>(res, "the server");
   }
 
   async publish() {

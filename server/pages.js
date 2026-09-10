@@ -64,6 +64,7 @@ const CSS = `
   .tpl span { display:block; font-size: 0.8rem; color: var(--ink-soft); margin-top: 0.15rem; }
   footer.foot { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: 0.8rem; color: var(--ink-soft); display:flex; gap: 1rem; flex-wrap: wrap; }
   footer.foot a { color: var(--ink-soft); }
+  .guest { padding: 0.8rem 1rem; border: 1px solid var(--accent); border-radius: 8px; background: var(--panel); max-width: 60ch; }
 `;
 
 /**
@@ -132,7 +133,7 @@ ${hint}`,
  */
 
 /**
- * @param {{ user: { email: string }, decks: DeckRow[], templates: { name: string, title: string, blurb: string }[], error?: string }} o
+ * @param {{ user: { email: string }, guest?: boolean, decks: DeckRow[], templates: { name: string, title: string, blurb: string }[], error?: string }} o
  */
 export function homePage(o) {
   const rows = o.decks
@@ -159,9 +160,13 @@ export function homePage(o) {
     )
     .join("\n");
 
+  const guest = o.guest
+    ? `<p class="guest">This wall is a guest's: yours for a week, on this browser. Press <b>Publish</b> on it and give an email to keep it, and to put it at a link.</p>`
+    : "";
   return layout(
     "Your decks",
     `<h1>Your decks</h1>
+${guest}
 ${o.error ? `<p class="bad-note">${esc(o.error)}</p>` : ""}
 ${o.decks.length ? `<ul class="decks">${rows}</ul>` : `<p class="note">Nothing yet. A deck starts as a bare wall, or from one of the templates below.</p>`}
 <h2>New deck</h2>
@@ -172,7 +177,7 @@ ${o.decks.length ? `<ul class="decks">${rows}</ul>` : `<p class="note">Nothing y
 </form>
 <p class="note">It opens on the wall with the editor beside it. Nobody sees it until you publish.</p>
 <footer class="foot"><a href="/welcome">The wall, as a visitor sees it</a><a href="/developers">For developers</a></footer>`,
-    { user: o.user },
+    { user: o.guest ? { email: "a guest" } : o.user },
   );
 }
 
@@ -202,16 +207,20 @@ ${token}
 /**
  * What a visitor reads over the landing wall: what this is, and the
  * one thing to do next. Laid over the wall by shell.js; the wall itself
- * is one of the templates, walked live. Styles live with the HUD's.
- * @param {{ signedIn: boolean }} o
+ * is a template, walking itself for a few stops. Styles live with the
+ * HUD's. With guests allowed the one thing is "try it"; without, it is
+ * signing in.
+ * @param {{ signedIn: boolean, guests: boolean }} o
  */
 export function landingAside(o) {
   const cta = o.signedIn
     ? `<a class="go" href="/">Your decks</a>`
-    : `<a class="go" href="/signin">Make your own</a><a href="/signin">Sign in</a>`;
+    : o.guests
+      ? `<a class="go" href="/try">Try it, no account</a><a href="/signin">Sign in</a>`
+      : `<a class="go" href="/signin">Sign in</a>`;
   return `<aside id="landing" aria-label="About Storyboard">
   <b class="mark">Storyboard<i>&nbsp;•</i></b>
-  <p>A slide deck presented as a gallery wall: index cards pinned to plaster, headings painted on, walked with the arrow keys or a swipe. This one is a bakery that does not exist. Walk it, then make your own.</p>
+  <p>Your slides, as a wall: index cards on plaster, walked with a swipe or the arrow keys. This one is walking itself. Write your own on it in a minute; give an email only when you want to keep it.</p>
   <div class="acts">${cta}</div>
 </aside>`;
 }

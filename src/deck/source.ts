@@ -37,6 +37,8 @@ export interface Hosted {
   dirty: boolean;
   /** The front door: a template walked live, with the product's words over it. */
   landing?: boolean;
+  /** The viewer is a guest: a wall to write on, no address yet. Publishing asks for one. */
+  guest?: boolean;
 }
 
 export interface DeckSource {

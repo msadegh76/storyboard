@@ -18,7 +18,8 @@ import { loop } from "./scene/loop.js";
 import { normalizeDeck, sizeCards, deckComplaints } from "./deck/schema.js";
 import { setDeck, STORY, promises } from "./deck/state.js";
 import { loadImages, releaseImages } from "./deck/images.js";
-import { resolveStory, storyStart, storyReframe } from "./deck/story.js";
+import { resolveStory, storyStart, storyReframe, storyNext, storyPrev } from "./deck/story.js";
+import { REDUCED } from "./util.js";
 import { placeCards, spaceOutCards } from "./deck/layout.js";
 import { loadSource, type DeckSource } from "./deck/source.js";
 import { initControls } from "./ui/controls.js";
@@ -82,6 +83,44 @@ function offerEdit(source: DeckSource) {
    on a host the markup goes before anyone can find the key. */
 function noReveal() {
   for (const n of document.querySelectorAll(".hint-reveal, #reveal, #reveal-shimmer")) n.remove();
+}
+
+/* On a host, two arrows a viewer can see. Keys and swipes still work;
+   these are for whoever does not know that yet, which on a first visit
+   is everyone. Not over the editor, which has its own controls. */
+function offerArrows() {
+  const box = document.createElement("nav");
+  box.id = "walk";
+  box.setAttribute("aria-label", "Walk the wall");
+  const make = (label: string, title: string, go: () => void) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.title = title;
+    b.setAttribute("aria-label", title);
+    b.addEventListener("click", go);
+    return b;
+  };
+  box.append(make("←", "Previous stop", storyPrev), make("→", "Next stop", storyNext));
+  el("app-root")?.append(box);
+}
+
+/* The front door walks itself: three stops, a few seconds each, and
+   then it stops and waits — unless the visitor touches anything first,
+   or has asked for less motion. A wall that moves needs no caption to
+   say it can be walked. */
+function autoWalk() {
+  if (REDUCED) return;
+  let steps = 0;
+  const stop = () => {
+    clearInterval(timer);
+    for (const ev of ["keydown", "pointerdown", "wheel"]) removeEventListener(ev, stop);
+  };
+  const timer = setInterval(() => {
+    storyNext();
+    if (++steps >= 3) stop();
+  }, 3200);
+  for (const ev of ["keydown", "pointerdown", "wheel"]) addEventListener(ev, stop, { passive: true });
 }
 
 function boot(source: DeckSource) {
@@ -148,6 +187,7 @@ function boot(source: DeckSource) {
     initPresent();
     initDebug();
     offerEdit(source);
+    if (source.mode === "hosted" && !source.editable) offerArrows();
     /* The editor is a tool for whoever may edit this deck: beside
        `pnpm dev`, anyone; on a host, its owner on the draft page. It
        arrives as its own chunk, so a deck being shown never loads it. */
@@ -157,6 +197,7 @@ function boot(source: DeckSource) {
       loader?.classList.add("done");
       fitCamera(); // the window has its real size by now, whatever it said at load
       storyStart();
+      if (source.hosted?.landing) setTimeout(autoWalk, 1800);
     }, 400);
   });
 }

@@ -19,7 +19,7 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { makeAuth, AuthError } from "./auth.js";
+import { makeAuth, AuthError, isGuest } from "./auth.js";
 import { makeDecks, HttpError } from "./decks.js";
 import { replaceSlide, insertSlide, removeSlide, moveSlide, setFields } from "./ops.js";
 import { ValidationError } from "./validate.js";
@@ -219,7 +219,7 @@ export function createApp({ config, db, storage, mail, shell }) {
 
   app.get("/api/auth/callback", (c) => {
     try {
-      const { session } = auth.redeem(c.req.query("token") || "");
+      const { session, user } = auth.redeem(c.req.query("token") || "", userOf(c));
       setCookie(c, auth.cookie, session, {
         path: "/",
         httpOnly: true,
@@ -227,7 +227,18 @@ export function createApp({ config, db, storage, mail, shell }) {
         sameSite: "Lax",
         maxAge: auth.sessionDays * 86400,
       });
-      return c.redirect(localPath(c.req.query("next")) ?? homePath);
+      /* A guest who asked to keep and publish their wall: now that the
+         address is theirs, publish it and land them on the link. */
+      const next = localPath(c.req.query("next"));
+      const keep = next ? /^\/edit\/([a-z0-9-]+)\?publish=1$/.exec(next) : null;
+      if (keep?.[1]) {
+        const row = decks.bySlug(keep[1]);
+        if (row && row.owner_id === user.id) {
+          decks.publish(row.id, null);
+          return c.redirect(`/d/${row.slug}`);
+        }
+      }
+      return c.redirect(next ?? homePath);
     } catch (err) {
       if (err instanceof AuthError) return c.html(signinPage({ error: err.message, logMode }), status(err.status));
       throw err;
@@ -253,15 +264,72 @@ export function createApp({ config, db, storage, mail, shell }) {
   const home = (/** @type {Context} */ c, /** @type {{ error?: string }} */ extra = {}) => {
     const user = userOf(c);
     if (!user) return c.redirect("/signin");
-    return c.html(homePage({ user, decks: decks.list(user.id), templates: TEMPLATES, ...extra }));
+    return c.html(homePage({ user, guest: isGuest(user), decks: decks.list(user.id), templates: TEMPLATES, ...extra }));
   };
+
+  /* Try it, no account.
+
+     A stranger gets a wall to write on before being asked who they
+     are: a guest account made on the spot, a deck from a template, and
+     the editor. A guest who comes back gets the same deck, not another.
+     The email is asked for at Publish, which is when it is worth
+     something to them. Guests are only possible where anyone may sign
+     up, since claiming a wall is signing up. */
+  /** @type {Map<string, number[]>} */
+  const tried = new Map();
+  const TRIES_PER_HOUR = 30;
+  const ipOf = (/** @type {Context} */ c) =>
+    (c.req.header("x-forwarded-for") || "").split(",")[0]?.trim() ||
+    /** @type {any} */ (c.env)?.incoming?.socket?.remoteAddress ||
+    "?";
+
+  const tryIt = async (/** @type {Context} */ c) => {
+    if (config.signup !== "open") return c.redirect("/signin");
+    const template = param(c, "template") || "product-demo";
+    if (!isExample(config.root, template)) throw new HttpError(404, "no such template");
+    let user = userOf(c);
+    if (!user) {
+      const ip = ipOf(c);
+      const recent = (tried.get(ip) ?? []).filter((t) => t > Date.now() - 3600_000);
+      if (recent.length >= TRIES_PER_HOUR)
+        throw new HttpError(429, "that is enough new walls for one hour — sign in to keep going");
+      tried.set(ip, [...recent, Date.now()]);
+      const made = auth.guest();
+      user = made.user;
+      setCookie(c, auth.cookie, made.session, {
+        path: "/",
+        httpOnly: true,
+        secure: config.secureCookies,
+        sameSite: "Lax",
+        maxAge: 7 * 86400,
+      });
+    }
+    // a guest keeps one wall; the same visitor pressing Try again lands on it
+    const mine = decks.list(user.id);
+    if (isGuest(user) && mine[0]) return c.redirect(mine[0].editUrl);
+    const t = TEMPLATES.find((x) => x.name === template);
+    const deck = { ...(await readExample(config.root, template)), title: t?.title ?? template };
+    const row = decks.create(user.id, { title: deck.title, deck });
+    const withPictures = await importPictures(deck, publicReader(config.root), (data) => decks.addPicture(row.id, data));
+    decks.applyOp(row.id, null, () => ({ deck: withPictures }));
+    return c.redirect(`/edit/${row.slug}`);
+  };
+  app.get("/try", tryIt);
+  app.get("/try/:template", tryIt);
+
+  /* Guests nobody claimed go after a month, pictures and all. Checked
+     daily; the timer does not keep a process alive on its own. */
+  const sweep = async () => {
+    for (const id of auth.sweepGuests()) await storage.deleteAll(id).catch(() => {});
+  };
+  setInterval(() => void sweep(), 86_400_000).unref();
 
   /* A visitor's first screen is a wall, not a form: one of the
      templates, walked live, with a few words over it and one thing to
      do. Its pictures are the checkout's own under /demo, so the paths
      resolve from the root with no asset base at all. */
   const landing = async (/** @type {Context} */ c) => {
-    const deck = await readExample(config.root, "lighthouse-bakery");
+    const deck = await readExample(config.root, "product-demo");
     const html = renderShell(await shell(c.req.path), {
       payload: {
         deck,
@@ -281,7 +349,7 @@ export function createApp({ config, db, storage, mail, shell }) {
       description: "Index cards pinned to plaster, headings painted on, walked with the arrow keys. Make your own and publish it at a link.",
       canonical: `${config.baseUrl}/`,
       rootAssets: !config.dev,
-      extra: landingAside({ signedIn: !!userOf(c) }),
+      extra: landingAside({ signedIn: !!userOf(c) && !isGuest(userOf(c)), guests: config.signup === "open" }),
     });
     return c.html(html, 200, { "cache-control": "public, max-age=300", vary: "Cookie" });
   };
@@ -301,10 +369,11 @@ export function createApp({ config, db, storage, mail, shell }) {
   const payloadFor = (
     /** @type {import("./decks.js").DeckRow} */ row,
     /** @type {Deck} */ deck,
-    /** @type {{ editable: boolean, owner: boolean }} */ o,
+    /** @type {{ editable: boolean, owner: boolean, guest?: boolean }} */ o,
   ) => {
     const d = decks.describe(row);
     return {
+      guest: !!o.guest,
       deck,
       id: d.id,
       slug: d.slug,
@@ -327,7 +396,7 @@ export function createApp({ config, db, storage, mail, shell }) {
     if (!row || row.owner_id !== user.id) throw new HttpError(404, "There is no deck of yours at this address.");
     const deck = /** @type {Deck} */ (JSON.parse(row.draft));
     const html = renderShell(await shell(c.req.path), {
-      payload: payloadFor(row, deck, { editable: true, owner: true }),
+      payload: payloadFor(row, deck, { editable: true, owner: true, guest: isGuest(user) }),
       title: `${row.title} — editing`,
       noindex: true,
       rootAssets: !config.dev,
@@ -554,6 +623,8 @@ export function createApp({ config, db, storage, mail, shell }) {
 
   api.post("/:id/publish", small, async (c) => {
     const row = own(c);
+    // a wall with nobody's name on it is not put at a link; the panel asks for the address first
+    if (isGuest(userOf(c))) throw new HttpError(403, "keep this wall with your email first; then it is published");
     const body = await bodyOf(c);
     const out = decks.publish(row.id, revOf(body));
     return c.json({ ok: true, ...out });

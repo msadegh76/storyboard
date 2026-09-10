@@ -11,7 +11,14 @@
 
    Who may sign in: the owner named in the environment, always; anyone
    who already has an account; and, only when signup is open, anyone
-   at all. */
+   at all.
+
+   A guest is an account with no address yet: made on the spot so a
+   stranger can build a wall before being asked who they are. Their
+   address is `guest:<id>`, which no mail can reach, and their session
+   is short. Redeeming a link while holding a guest session *claims*
+   it: the guest becomes that person, decks and all — or, if the
+   address already has an account, the decks move over to it. */
 
 import { createHash, randomBytes } from "node:crypto";
 import { now } from "./db.js";
@@ -19,8 +26,13 @@ import { now } from "./db.js";
 export const COOKIE = "storyboard_session";
 const LINK_MINUTES = 15;
 const SESSION_DAYS = 30;
+const GUEST_DAYS = 7;
 const TOKEN_DAYS = 365;
 const LINKS_PER_HOUR = 5;
+
+/** A guest's address: unreachable, and recognisable. */
+export const isGuest = (/** @type {{ email: string } | null | undefined} */ u) =>
+  !!u && u.email.startsWith("guest:");
 
 export class AuthError extends Error {
   /** @override */
@@ -90,8 +102,14 @@ export function makeAuth({ db, config, mail }) {
       return { email, how: mail.kind };
     },
 
-    /** Turn a link into a session. @returns {{ session: string, user: User }} */
-    redeem(/** @type {string} */ token) {
+    /**
+     * Turn a link into a session. If the one redeeming it is a guest,
+     * the guest is claimed: their decks are that person's now.
+     * @param {string} token
+     * @param {User | null} [holder] whoever holds the session the link was opened with
+     * @returns {{ session: string, user: User, claimed: boolean }}
+     */
+    redeem(token, holder = null) {
       const row = /** @type {{ email: string, expires_at: string, used_at: string | null } | undefined} */ (
         db.prepare("SELECT email, expires_at, used_at FROM magic_links WHERE token_hash = ?").get(hash(String(token || "")))
       );
@@ -101,6 +119,19 @@ export function makeAuth({ db, config, mail }) {
       db.prepare("UPDATE magic_links SET used_at = ? WHERE token_hash = ?").run(now(), hash(token));
 
       let user = userByEmail(row.email);
+      let claimed = false;
+      if (holder && isGuest(holder)) {
+        claimed = true;
+        if (user) {
+          // the address already has an account: the guest's decks go to it
+          db.prepare("UPDATE decks SET owner_id = ? WHERE owner_id = ?").run(user.id, holder.id);
+          db.prepare("DELETE FROM users WHERE id = ?").run(holder.id);
+        } else {
+          // the guest simply becomes this person, decks and all
+          db.prepare("UPDATE users SET email = ? WHERE id = ?").run(row.email, holder.id);
+          user = { id: holder.id, email: row.email, name: null };
+        }
+      }
       if (!user) {
         user = { id: id(12), email: row.email, name: null };
         db.prepare("INSERT INTO users (id, email, name, created_at) VALUES (?, ?, ?, ?)").run(
@@ -114,7 +145,34 @@ export function makeAuth({ db, config, mail }) {
       db.prepare(
         "INSERT INTO sessions (id, user_id, kind, expires_at, created_at) VALUES (?, ?, 'browser', ?, ?)",
       ).run(session, user.id, later(SESSION_DAYS * 86400_000), now());
+      return { session, user, claimed };
+    },
+
+    /** An account with no address yet, and a short session for it. */
+    guest() {
+      const uid = id(12);
+      const user = { id: uid, email: `guest:${uid}`, name: null };
+      db.prepare("INSERT INTO users (id, email, name, created_at) VALUES (?, ?, ?, ?)").run(user.id, user.email, null, now());
+      const session = id(32);
+      db.prepare(
+        "INSERT INTO sessions (id, user_id, kind, expires_at, created_at) VALUES (?, ?, 'guest', ?, ?)",
+      ).run(session, user.id, later(GUEST_DAYS * 86400_000), now());
       return { session, user };
+    },
+
+    /** Guests nobody claimed, older than a month: gone, decks and all. Answers with their deck ids. */
+    sweepGuests(days = 30) {
+      const before = new Date(Date.now() - days * 86400_000).toISOString();
+      const stale = /** @type {{ id: string }[]} */ (
+        db.prepare("SELECT id FROM users WHERE email LIKE 'guest:%' AND created_at < ?").all(before)
+      );
+      /** @type {string[]} */
+      const gone = [];
+      for (const u of stale) {
+        for (const d of /** @type {{ id: string }[]} */ (db.prepare("SELECT id FROM decks WHERE owner_id = ?").all(u.id))) gone.push(d.id);
+        db.prepare("DELETE FROM users WHERE id = ?").run(u.id);
+      }
+      return gone;
     },
 
     /** The user a session id belongs to, if it is one and is still good. */

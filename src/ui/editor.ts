@@ -1539,6 +1539,39 @@ function renderAdd() {
   );
 }
 
+/* Three lines for the first minute on a hosted wall, over the fields,
+   until dismissed. Not beside `pnpm dev`: whoever runs that read the
+   README. Remembered across pages, not just this tab. */
+const COACH = "storyboard:coached";
+function coachMark(): HTMLElement | null {
+  if (store.kind !== "api") return null;
+  try {
+    if (localStorage.getItem(COACH)) return null;
+  } catch {
+    return null;
+  }
+  const box = h("div", "ed-coach");
+  const list = h("ol");
+  for (const line of [
+    "Type in a field below and the card redraws as you go.",
+    "Drag a card on the wall to move it. + Add puts another beside it.",
+    "Press Keep it or Publish when it is ready to be seen.",
+  ])
+    list.append(h("li", "", line));
+  box.append(list);
+  box.append(
+    button("Got it", "ed-mini", "Hide these three lines", () => {
+      try {
+        localStorage.setItem(COACH, "1");
+      } catch {
+        /* a page that may not remember still edits */
+      }
+      box.remove();
+    }),
+  );
+  return box;
+}
+
 /* One slide: its cards, and the picked card's fields in groups. */
 function renderSlide(ps: Promise_[]) {
   if (!body || !foot) return;
@@ -1547,6 +1580,8 @@ function renderSlide(ps: Promise_[]) {
   if (!p) return;
   const slide = p.slide;
   setHead(`Slide ${slide} · ${ps.length} card${ps.length > 1 ? "s" : ""}`, false);
+  const coach = coachMark();
+  if (coach) body.append(coach);
 
   // the cards of this slide, each wearing its kind
   const chips = h("div", "ed-chips");
@@ -1783,7 +1818,7 @@ function toggle() {
 const onAPhone = () =>
   (matchMedia("(pointer: coarse)").matches && innerWidth < 900) || innerWidth < 560;
 
-function phoneNotice(publishedUrl: string | null) {
+function phoneNotice(publishedUrl: string | null): HTMLElement {
   const box = h("aside", "ed-phone");
   box.setAttribute("role", "note");
   box.append(
@@ -1809,6 +1844,7 @@ function phoneNotice(publishedUrl: string | null) {
   }
   box.append(acts, button("×", "ed-x", "Dismiss", () => box.remove()));
   document.body.append(box);
+  return box;
 }
 
 /** Open the editor with `e`. Loaded only where the deck may be edited — see the note at the top. */
@@ -1818,12 +1854,26 @@ export function initEditor() {
 
   /* The wall is edited beside itself, and a phone has no room beside
      it: the panel would cover all but a sliver. Say so, once, and
-     offer the link for a bigger screen. The draft is already here. */
+     offer the link for a bigger screen. The draft is already here. A
+     window that grows past a phone's width afterwards — a browser
+     still settling its size, a tablet turned sideways — gets the
+     panel after all. */
   if (store.kind === "api" && onAPhone()) {
-    phoneNotice(source.hosted?.published ? source.hosted.url : null);
+    const notice = phoneNotice(source.hosted?.published ? source.hosted.url : null);
+    const grown = () => {
+      if (onAPhone()) return;
+      removeEventListener("resize", grown);
+      notice.remove();
+      startEditor();
+    };
+    addEventListener("resize", grown);
     return;
   }
+  startEditor();
+}
 
+/* Everything the panel needs once it is known there is room for it. */
+function startEditor() {
   // a key nobody was told about is a key nobody presses
   console.info("storyboard: press e to edit this slide");
   const hint = document.getElementById("hint");

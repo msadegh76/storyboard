@@ -892,3 +892,25 @@ a.ed-mini {
   top: 10px;
   right: 10px;
 }
+
+/* ---- the first minute: three lines over the fields ---- */
+.ed-coach {
+  margin: 0 0 12px;
+  padding: 10px 12px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--field));
+  font-size: 12px;
+  line-height: 1.45;
+}
+.ed-coach ol {
+  margin: 0 0 6px;
+  padding-left: 18px;
+}
+.ed-coach li {
+  margin: 0 0 3px;
+}
+.ed-coach li::marker {
+  color: var(--accent);
+  font-weight: 600;
+}

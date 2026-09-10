@@ -240,3 +240,47 @@ body.blacked #blackout {
     display: none;
   }
 }
+
+/* On a host, two arrows a viewer can see. Bottom right, out of the
+   hint's way, and under the stop counter's eye line. */
+#walk {
+  position: fixed;
+  right: 16px;
+  bottom: 24px;
+  z-index: 60;
+  display: flex;
+  gap: 6px;
+}
+#walk button {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(70, 52, 28, 0.14);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+#walk button:hover,
+#walk button:focus-visible {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+@media (max-width: 560px) {
+  #walk {
+    right: 12px;
+    bottom: 12px;
+  }
+  /* the landing's card takes the bottom of a phone; the arrows go up
+     under the counter rather than fight it */
+  body:has(#landing) #walk {
+    bottom: auto;
+    top: 40px;
+    right: 12px;
+  }
+}
