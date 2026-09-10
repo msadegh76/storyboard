@@ -133,7 +133,7 @@ It reads the deck as data, uploads the pictures it names under
 `public/`, and writes the draft — publishing it as well, with
 `--publish`. The same server runs beside `pnpm dev`, at
 `/home`, so all of this can be tried without building anything: sign
-in as `owner@localhost` and the link prints in the terminal.
+in with any address and the link prints in the terminal.
 
 ## Write a deck
 

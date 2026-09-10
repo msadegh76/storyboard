@@ -32,8 +32,10 @@ export function hosted() {
       const config = readConfig(process.env, {
         dev: true,
         root,
-        // a dev server has an owner by default, so sign-in works with nothing set
+        // a dev server is its developer's own: any address may sign in,
+        // and the link prints here anyway. SIGNUP=closed keeps it to the owner.
         ownerEmail: (process.env.OWNER_EMAIL || "owner@localhost").trim().toLowerCase(),
+        signup: process.env.SIGNUP === "closed" ? "closed" : "open",
       });
       mkdirSync(config.dataDir, { recursive: true });
       const db = openDb(path.join(config.dataDir, "storyboard.db"));
@@ -53,7 +55,9 @@ export function hosted() {
         void listener(req, res);
       });
       server.config.logger.info(
-        `  storyboard: hosted wall at /home — sign in as ${config.ownerEmail}; links print here`,
+        config.signup === "open"
+          ? "  storyboard: hosted wall at /home — sign in with any address; the link prints here"
+          : `  storyboard: hosted wall at /home — sign in as ${config.ownerEmail}; the link prints here`,
       );
     },
   };
