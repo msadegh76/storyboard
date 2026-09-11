@@ -1,33 +1,30 @@
-# The wall on Fly.io: one small machine that sleeps when nobody is
-# visiting, and a volume at /data for the decks and their pictures.
+# fly.toml app configuration file generated for presentation-wall on 2026-09-11T16:10:14+03:30
 #
-#   fly launch --no-deploy --copy-config --name <your-app> --region ams
-#   fly volumes create data --region ams --size 1 --yes
-#   fly secrets set OWNER_EMAIL=you@example.com
-#   fly deploy --ha=false
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
-# Put your app's name in `app` and in BASE_URL before the first deploy.
 
-app = "your-wall"
-primary_region = "ams"
-# the picture resizer needs headroom on a big photo; this is the safety net
+app = 'presentation-wall'
+primary_region = 'ams'
 swap_size_mb = 512
 
+[build]
 [env]
-  BASE_URL = "https://your-wall.fly.dev"
-  SIGNUP = "open"
+  BASE_URL = 'https://presentation-wall.fly.dev'
+  SIGNUP = 'open'
+
+[[mounts]]
+  source = 'data'
+  destination = '/data'
 
 [http_service]
   internal_port = 8787
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
 
-[[mounts]]
-  source = "data"
-  destination = "/data"
-
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "512mb"
+  size = 'shared-cpu-1x'
+  memory = '512mb'
+  cpus = 1
+  memory_mb = 512

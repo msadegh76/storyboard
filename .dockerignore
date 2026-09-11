@@ -6,3 +6,4 @@ dist
 .impeccable
 .github
 *.log
+public/demo/onboarding
