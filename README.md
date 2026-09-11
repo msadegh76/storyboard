@@ -277,23 +277,35 @@ server; Vite keeps the old path until you do.)
 ### Mail
 
 A hosted wall signs people in by email, so before anyone but you uses
-it, it needs a way to send one. It speaks to [Resend](https://resend.com):
+it, it needs a way to send one. Two ways.
 
-1. Make a Resend account and add the domain you send from (say
-   `mail.example.com`). Resend shows the DNS records to add; wait for
-   them to verify.
-2. Make an API key.
-3. Start the server with both:
+**Through a mailbox's own SMTP door**, which needs no domain. A Gmail
+account works with an [app password](https://myaccount.google.com/apppasswords)
+(two-step verification has to be on; type the sixteen letters without
+the spaces). Brevo, Mailgun and Postmark work with the SMTP login they
+show you. The address is `smtps://user:password@host:465`:
 
 ```bash
-RESEND_API_KEY=re_… MAIL_FROM="Storyboard <wall@mail.example.com>" OWNER_EMAIL=you@example.com pnpm serve
+SMTP_URL='smtps://you%40gmail.com:abcdefghijklmnop@smtp.gmail.com:465' MAIL_FROM='Storyboard <you@gmail.com>' OWNER_EMAIL=you@gmail.com pnpm serve
 ```
 
-Send yourself a link and check it arrives — and check a Gmail and an
-Outlook address too, since those are the ones that go to spam first.
-Without a key the server says so at startup and prints every link to
-its log, which is right for a wall with one owner and wrong for one
-with any more.
+Anything odd in the user or the password — `@`, `/`, `:`, a space — is
+written percent-encoded, as `%40`, `%2F`, `%3A`, `%20`. `MAIL_FROM` has
+to be an address the account may send as. Gmail allows about five
+hundred messages a day, which is a great many sign-ins.
+
+**Through [Resend](https://resend.com)**, once you have a domain: add
+it there, put the DNS records it shows you in place, make an API key,
+and start with `RESEND_API_KEY=re_… MAIL_FROM="Storyboard <wall@mail.example.com>"`.
+Mail from a domain of your own is what stays out of spam folders in
+the long run.
+
+Either way, send yourself a link and check it arrives — and check a
+Gmail and an Outlook address too, since those are the ones that go to
+spam first. With neither set the server says so at startup and prints
+every link to its log, which is right for a wall with one owner and
+wrong for one with any more. On Fly these are secrets:
+`fly secrets set SMTP_URL=… MAIL_FROM=…`.
 
 ### The three kinds of card
 

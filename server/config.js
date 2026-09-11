@@ -23,7 +23,7 @@ const MB = 1024 * 1024;
  * @property {string} root the project, for the examples and their pictures
  * @property {string} ownerEmail who may sign in first
  * @property {"open"|"closed"} signup whether anyone else may
- * @property {{ resendKey: string; from: string }} mail
+ * @property {{ resendKey: string; smtpUrl: string; from: string }} mail
  * @property {boolean} dev running inside the Vite dev server
  * @property {boolean} secureCookies
  * @property {{ decksPerUser: number; picturesPerDeck: number; bytesPerUser: number; pictureBytes: number; deckBytes: number }} quota
@@ -54,7 +54,11 @@ export function readConfig(env = process.env, over = {}) {
       .trim()
       .toLowerCase(),
     signup: env.SIGNUP === "open" ? "open" : "closed",
-    mail: { resendKey: env.RESEND_API_KEY || "", from: env.MAIL_FROM || "Storyboard <storyboard@localhost>" },
+    mail: {
+      resendKey: env.RESEND_API_KEY || "",
+      smtpUrl: env.SMTP_URL || "",
+      from: env.MAIL_FROM || "Storyboard <storyboard@localhost>",
+    },
     dev: false,
     secureCookies: false,
     quota: {
