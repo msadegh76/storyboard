@@ -251,7 +251,10 @@ body.blacked #blackout {
   display: flex;
   gap: 6px;
 }
-#walk button {
+#walk button,
+#walk a {
+  display: grid;
+  place-items: center;
   width: 40px;
   height: 40px;
   border-radius: 999px;
@@ -267,7 +270,9 @@ body.blacked #blackout {
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 #walk button:hover,
-#walk button:focus-visible {
+#walk button:focus-visible,
+#walk a:hover,
+#walk a:focus-visible {
   opacity: 1;
   transform: translateY(-1px);
 }

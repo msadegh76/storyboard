@@ -95,10 +95,20 @@ function noReveal() {
 /* On a host, two arrows a viewer can see. Keys and swipes still work;
    these are for whoever does not know that yet, which on a first visit
    is everyone. Not over the editor, which has its own controls. */
-function offerArrows() {
+function offerArrows(home?: string) {
   const box = document.createElement("nav");
   box.id = "walk";
   box.setAttribute("aria-label", "Walk the wall");
+  // a way off the wall: the front door, which is the deck list once signed in
+  if (home) {
+    const a = document.createElement("a");
+    a.href = home;
+    a.title = "Home";
+    a.setAttribute("aria-label", "Home");
+    a.innerHTML =
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 3.5 21 11"/><path d="M5.5 9.5V20.5h13V9.5"/><path d="M10 20.5v-6h4v6"/></svg>';
+    box.append(a);
+  }
   const make = (label: string, title: string, go: () => void) => {
     const b = document.createElement("button");
     b.type = "button";
@@ -194,7 +204,8 @@ function boot(source: DeckSource) {
     initPresent();
     initDebug();
     offerEdit(source);
-    if (source.mode === "hosted" && !source.editable) offerArrows();
+    if (source.mode === "hosted" && !source.editable)
+      offerArrows(source.hosted?.landing ? undefined : "/");
     /* The editor is a tool for whoever may edit this deck: beside
        `pnpm dev`, anyone; on a host, its owner on the draft page. It
        arrives as its own chunk, so a deck being shown never loads it. */
