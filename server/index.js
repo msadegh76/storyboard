@@ -13,7 +13,7 @@ import { serve } from "@hono/node-server";
 import { readConfig } from "./config.js";
 import { openDb } from "./db.js";
 import { diskStorage } from "./storage.js";
-import { logMailer, resendMailer } from "./mail.js";
+import { logMailer, resendMailer, smtpMailer } from "./mail.js";
 import { createApp } from "./app.js";
 
 const config = readConfig();
@@ -24,16 +24,20 @@ if (!existsSync(shellFile)) {
 }
 if (!config.ownerEmail && config.signup !== "open")
   console.warn("storyboard: OWNER_EMAIL is not set and SIGNUP is not open — nobody can sign in");
-if (!config.mail.resendKey)
+if (!config.mail.resendKey && !config.mail.smtpUrl)
   console.warn(
-    "storyboard: no RESEND_API_KEY — sign-in links will be printed here, not mailed. Fine for one owner; set it before opening the wall to others. See README, Mail.",
+    "storyboard: no SMTP_URL or RESEND_API_KEY — sign-in links will be printed here, not mailed. Fine for one owner; set one before opening the wall to others. See README, Mail.",
   );
 
 mkdirSync(config.dataDir, { recursive: true });
 const html = readFileSync(shellFile, "utf8");
 const db = openDb(path.join(config.dataDir, "storyboard.db"));
 const storage = diskStorage(path.join(config.dataDir, "assets"));
-const mail = config.mail.resendKey ? resendMailer(config.mail.resendKey, config.mail.from) : logMailer();
+const mail = config.mail.resendKey
+  ? resendMailer(config.mail.resendKey, config.mail.from)
+  : config.mail.smtpUrl
+    ? smtpMailer(config.mail.smtpUrl, config.mail.from)
+    : logMailer();
 const app = createApp({ config, db, storage, mail, shell: async () => html });
 
 serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {

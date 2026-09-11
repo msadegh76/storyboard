@@ -291,7 +291,7 @@ export class ApiStore implements DeckStore {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email, next: `/edit/${this.slug}?publish=1` }),
     });
-    return answerOf<{ ok: true; how: "log" | "resend" }>(res, "the server");
+    return answerOf<{ ok: true; how: "log" | "resend" | "smtp" }>(res, "the server");
   }
 
   async publish() {

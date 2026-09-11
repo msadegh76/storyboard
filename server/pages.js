@@ -98,7 +98,7 @@ ${body}
 }
 
 /**
- * @param {{ sent?: string, how?: "log" | "resend", error?: string, next?: string, logMode: boolean }} o
+ * @param {{ sent?: string, how?: "log" | "resend" | "smtp", error?: string, next?: string, logMode: boolean }} o
  */
 export function signinPage(o) {
   if (o.sent) {
