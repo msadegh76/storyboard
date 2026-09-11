@@ -141,6 +141,12 @@ docker run -p 8787:8787 -v storyboard-data:/data \
   -e BASE_URL=https://wall.example -e OWNER_EMAIL=you@example.com storyboard
 ```
 
+On Fly.io the same image runs from [`fly.toml`](fly.toml), on one small
+machine that sleeps when nobody is visiting: put your app's name in its
+`app` and `BASE_URL` lines, then `fly launch --no-deploy --copy-config`,
+`fly volumes create data`, `fly secrets set OWNER_EMAIL=…` and
+`fly deploy --ha=false`.
+
 A deck written in a file can be put on a wall too. Make a token on the
 wall's **For developers** page (linked from the foot of the home page),
 then from your checkout:
