@@ -549,15 +549,40 @@ let reloading = false;
 function syncStatus() {
   if (!status) return;
   const dirty = unsaved.has(slideNow());
-  status.textContent = saving
-    ? "Saving…"
-    : failed
-      ? "Not saved"
-      : dirty
-        ? "Unsaved"
-        : "Saved";
+  status.textContent =
+    busyWord ||
+    (saving ? "Saving…" : failed ? "Not saved" : dirty ? "Unsaved" : "Saved");
   status.classList.toggle("dirty", dirty || failed);
-  status.classList.toggle("busy", saving);
+  status.classList.toggle("busy", saving || !!busyWord);
+}
+
+/* Something slower than a save is under way — a picture going up, a
+   card being drawn from it — and the header says which, with the
+   pulsing dot, until it is over. */
+let busyWord = "";
+function busy(word: string) {
+  busyWord = word;
+  syncStatus();
+}
+
+/* One picture on its way up. The header counts it, the pointer says
+   wait, and whoever called can show the same in place. Resolves to
+   the path the card will use. */
+async function uploadPicture(file: File, show: (word: string, done: number) => void = () => {}) {
+  const word = (done: number) =>
+    done < 1 ? `Uploading ${file.name} · ${Math.round(done * 100)}%` : "Keeping it…";
+  const at = (done: number) => {
+    busy(word(done));
+    show(word(done), done);
+  };
+  document.body.classList.add("ed-uploading");
+  at(0);
+  try {
+    return await store.upload(file, at);
+  } finally {
+    busy("");
+    document.body.classList.remove("ed-uploading");
+  }
 }
 
 /* Written a moment after the last change, not on every keystroke: a
@@ -617,12 +642,13 @@ function saveNow() {
 function touched(p: Promise_) {
   unsaved.add(p.slide);
   syncStatus();
-  void redraw(p).then(() => {
+  const drawn = redraw(p).then(() => {
     storyRefresh();
     clearTimeout(settle);
     settle = setTimeout(() => storyRefresh(true), 500);
   });
   scheduleSave(p.slide);
+  return drawn;
 }
 
 /* A photo has to have its picture back before it can be drawn again.
@@ -895,9 +921,8 @@ async function doAdd() {
 /* A picture dropped on the wall is a photo card, on this slide or — from
    a wide shot — on a new slide at that end of the deck. */
 async function dropPicture(file: File) {
-  tell(`Uploading ${file.name}…`);
   try {
-    addPath = await store.upload(file);
+    addPath = await uploadPicture(file);
   } catch (err) {
     tell(`Could not upload: ${err instanceof Error ? err.message : err}`, true);
     return;
@@ -1480,18 +1505,28 @@ function pictureSource(onPath: (path: string) => void, current: string) {
   box.append(h("label", "", "Picture"));
   const zone = h("button", "ed-drop");
   zone.type = "button";
-  zone.append(h("b", "", "Drop an image here, or choose a file"), h("small", "", `PNG, JPEG, GIF or WebP. ${store.pictureNote}`));
+  const IDLE = "Drop an image here, or choose a file";
+  const label = h("b", "", IDLE);
+  zone.append(label, h("small", "", `PNG, JPEG, GIF or WebP. ${store.pictureNote}`));
   const take = async (file: File | undefined) => {
     if (!isPicture(file)) return;
+    // the zone fills from the left as the bytes go, and says how far
     zone.classList.add("busy");
-    tell(`Uploading ${file.name}…`);
+    zone.setAttribute("aria-busy", "true");
     try {
-      onPath(await store.upload(file));
-      tell("");
+      onPath(
+        await uploadPicture(file, (word, done) => {
+          label.textContent = word;
+          zone.style.setProperty("--p", String(done));
+        }),
+      );
     } catch (err) {
       tell(`Could not upload: ${err instanceof Error ? err.message : err}`, true);
     }
     zone.classList.remove("busy");
+    zone.removeAttribute("aria-busy");
+    zone.style.removeProperty("--p");
+    label.textContent = IDLE;
   };
   zone.addEventListener("click", () => void pickFile().then(take));
   zone.addEventListener("dragover", (e) => {
@@ -1659,7 +1694,9 @@ function renderSlide(ps: Promise_[]) {
     wall.append(
       pictureSource((path) => {
         write(p, F.image, path);
-        touched(p);
+        // the picture has to come back down before the card can show it
+        busy("Drawing the card…");
+        void touched(p).finally(() => busy(""));
         render();
       }, p.image ?? ""),
     );
@@ -1823,6 +1860,7 @@ function build() {
   });
   head = h("b", "", "Slide");
   status = h("span", "ed-status", "Saved");
+  status.setAttribute("role", "status");
   const shut = h("button", "ed-x", "×");
   shut.type = "button";
   shut.title = "Close (e)";

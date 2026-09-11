@@ -44,8 +44,9 @@ export interface DeckStore {
   move(from: number, to: number): Promise<Written>;
   /** The deck's own fields — the room it hangs in. A null takes one out. */
   setFields(set: Record<string, string | null>): Promise<Written>;
-  /** A picture, kept. Resolves to the `image:` path the card will use. */
-  upload(file: File): Promise<string>;
+  /** A picture, kept. Resolves to the `image:` path the card will use;
+      `onProgress` hears how much of it has gone up, 0 to 1. */
+  upload(file: File, onProgress?: (done: number) => void): Promise<string>;
   /** A last save as the page goes, with no answer expected. */
   beacon(slide: number, stop: Payload): void;
 }
@@ -55,6 +56,36 @@ async function answerOf<T>(res: Response, who: string): Promise<T> {
   if (!out) throw new Error(`${who} did not answer (HTTP ${res.status}).`);
   if (!res.ok) throw new Error(out.error || `the server said ${res.status}`);
   return out as T;
+}
+
+/* A picture goes up by XMLHttpRequest, the one request the browser
+   reports the progress of; `fetch` only says when it is over. */
+function send<T>(
+  url: string,
+  body: XMLHttpRequestBodyInit,
+  type: string | null,
+  onProgress: ((done: number) => void) | undefined,
+  dead: (status: number) => string,
+): Promise<T> {
+  return new Promise((ok, bad) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    if (type) xhr.setRequestHeader("content-type", type);
+    xhr.responseType = "json";
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress?.(e.loaded / e.total);
+    };
+    xhr.upload.onload = () => onProgress?.(1);
+    xhr.onerror = () => bad(new Error("the network went away"));
+    xhr.onload = () => {
+      const out = xhr.response as (T & { error?: string }) | null;
+      if (!out) return bad(new Error(dead(xhr.status)));
+      if (xhr.status < 200 || xhr.status >= 300)
+        return bad(new Error(out.error || `the server said ${xhr.status}`));
+      ok(out);
+    };
+    xhr.send(body);
+  });
 }
 
 const sendBeacon = (url: string, body: unknown) =>
@@ -137,13 +168,15 @@ export class FileStore implements DeckStore {
   async setFields(set: Record<string, string | null>) {
     return this.done(await this.post("deck", { set, quiet: true }));
   }
-  async upload(file: File) {
+  async upload(file: File, onProgress?: (done: number) => void) {
     const data = await base64Of(file);
-    const out = await this.post<{ path: string }>("asset", {
-      name: file.name,
-      type: file.type,
-      data,
-    });
+    const out = await send<{ path: string }>(
+      "/__deck/asset",
+      JSON.stringify({ name: file.name, type: file.type, data }),
+      "application/json",
+      onProgress,
+      (s) => `the dev server did not answer (HTTP ${s}). Stop it and run pnpm dev again.`,
+    );
     return out.path;
   }
   beacon(slide: number, stop: Payload) {
@@ -258,11 +291,16 @@ export class ApiStore implements DeckStore {
   async setFields(set: Record<string, string | null>) {
     return this.done(await this.call("PATCH", "/fields", { set }));
   }
-  async upload(file: File) {
+  async upload(file: File, onProgress?: (done: number) => void) {
     const form = new FormData();
     form.append("file", file, file.name);
-    const res = await fetch(`/api/decks/${this.id}/assets`, { method: "POST", body: form });
-    const out = await answerOf<{ path: string }>(res, "the server");
+    const out = await send<{ path: string }>(
+      `/api/decks/${this.id}/assets`,
+      form,
+      null,
+      onProgress,
+      (s) => `the server did not answer (HTTP ${s}).`,
+    );
     return out.path;
   }
   beacon(slide: number, stop: Payload) {

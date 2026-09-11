@@ -89,7 +89,8 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ed-status.busy::before {
+  .ed-status.busy::before,
+  .ed-drop.busy b {
     animation: none;
   }
 }
@@ -121,9 +122,24 @@
   border-color: var(--accent);
   background: var(--field);
 }
+/* a picture on its way up: the zone fills from the left as the bytes go */
 .ed-drop.busy {
-  opacity: 0.6;
   pointer-events: none;
+  border-style: solid;
+  border-color: var(--accent);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 22%, var(--field)) calc(var(--p, 0) * 100%),
+    var(--field) 0
+  );
+  transition: background 0.2s;
+}
+.ed-drop.busy b {
+  animation: ed-pulse 0.9s ease-in-out infinite;
+}
+body.ed-uploading,
+body.ed-uploading #scene {
+  cursor: progress;
 }
 /* the whole wall is a target while a file is over it */
 #editor.ed-dropping {
