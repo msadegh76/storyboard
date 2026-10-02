@@ -159,7 +159,10 @@ function readCard(raw: unknown, where: string): Draft {
 ------------------------------------------------------------------ */
 function readSlide(raw: Slide, index: number): Draft[] {
   const where = `slide ${index + 1}`;
-  if (!raw || typeof raw !== "object")
+  /* A bare string is a card of plain text, and a card on its own is a
+     slide — so a string is a slide too, which is what types.ts says
+     and what the server keeps. readCard turns it into one. */
+  if (!raw || (typeof raw !== "object" && typeof raw !== "string"))
     throw new DeckError(where, `expected a slide object, got ${typeof raw}`);
 
   // `{ notes: [...] }` is several cards held in one stop; anything else

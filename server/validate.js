@@ -91,7 +91,7 @@ const mural = (v) => (v === true ? true : str(200)(v));
 /** @type {Check} */
 const seed = (v) => (typeof v === "number" && Number.isFinite(v) ? v : str(100)(v));
 
-const CARD = {
+export const CARD = {
   type: oneOf(TYPES),
   title: str(200),
   text: str(2000),
@@ -119,7 +119,7 @@ const CARD = {
   ink: bool,
 };
 
-const DECK = {
+export const DECK = {
   title: str(200),
   subtitle: str(300),
   seed,

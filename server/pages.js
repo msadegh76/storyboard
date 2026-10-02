@@ -54,6 +54,12 @@ const CSS = `
   ul.decks .acts a.go { background:var(--accent); border-color:var(--accent); color:#fff; }
   code { font-family: ui-monospace, Menlo, monospace; font-size: 0.88em; background: var(--panel); padding: 0.1em 0.35em; border-radius: 3px; }
   .token { font-family: ui-monospace, Menlo, monospace; word-break: break-all; padding: 0.8rem 1rem; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+  table.keys { width:100%; border-collapse:collapse; margin:0 0 1rem; font-size:0.88rem; }
+  table.keys th { text-align:left; font-weight:600; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-soft); padding:0 0.6rem 0.4rem 0; }
+  table.keys td { padding:0.55rem 0.6rem 0.55rem 0; border-top:1px solid var(--line); vertical-align:baseline; }
+  table.keys td:last-child, table.keys th:last-child { text-align:right; padding-right:0; }
+  table.keys .idle { color:var(--ink-soft); }
+  table.keys button { font-size:0.8rem; padding:0.25rem 0.7rem; }
   form.new { display:block; }
   form.new input[type=text] { width: 100%; max-width: 28rem; margin-bottom: 0.8rem; }
   .tpls { display:grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.6rem; margin: 0 0 1rem; }
@@ -182,14 +188,34 @@ ${o.decks.length ? `<ul class="decks">${rows}</ul>` : `<p class="note">Nothing y
 }
 
 /**
- * The corner for people with a terminal: a token, and how to push a
- * deck written in a file. Off the home page, where it read as the
- * whole product being for developers.
- * @param {{ user: { email: string }, token?: string }} o
+ * The corner for people with a terminal: a token, how to push a deck
+ * written in a file, and how to hand the wall to an assistant. Off the
+ * home page, where it read as the whole product being for developers.
+ * @param {{ user: { email: string }, token?: string, baseUrl: string, tokens?: { prefix: string, created_at: string, last_seen: string | null }[] }} o
  */
 export function developersPage(o) {
+  /* Only the first characters of each, which is what a client's
+     configuration shows too — enough to tell one from another, and no
+     use to anyone reading over a shoulder. */
+  const keys = o.tokens?.length
+    ? `<h2>Tokens you have out</h2>
+<table class="keys">
+<tr><th>Token</th><th>Made</th><th>Last used</th><th>&nbsp;</th></tr>
+${o.tokens
+  .map(
+    (t) => `<tr>
+  <td><code>${esc(t.prefix)}…</code></td>
+  <td>${esc(ago(t.created_at))}</td>
+  <td${t.last_seen ? ">" : ' class="idle">never'}${t.last_seen ? esc(ago(t.last_seen)) : ""}</td>
+  <td><form method="post" action="/api/auth/token/${esc(t.prefix)}/delete"><button class="quiet" type="submit">Revoke</button></form></td>
+</tr>`,
+  )
+  .join("")}
+</table>
+<p class="note">Revoking one stops it at once, wherever it is: whatever holds it — an assistant, a script — is signed out of this wall and has to be given a new one. Nothing else you have out is affected.</p>`
+    : "";
   const token = o.token
-    ? `<h2>Your token</h2><p>Shown once. Put it in <code>STORYBOARD_TOKEN</code> where you run <code>pnpm push</code>.</p><div class="token">${esc(o.token)}</div>`
+    ? `<h2>Your token</h2><p>Shown once. Put it in <code>STORYBOARD_TOKEN</code> where you run <code>pnpm push</code>, or in the line below.</p><div class="token">${esc(o.token)}</div>`
     : "";
   return layout(
     "For developers",
@@ -199,6 +225,13 @@ export function developersPage(o) {
 <p class="note">It needs a token, which stands in for your sign-in for a year and can be made here as often as you like.</p>
 ${token}
 <form method="post" action="/api/auth/token"><button class="quiet" type="submit">Make a token</button></form>
+${keys}
+
+<h2>Your own assistant</h2>
+<p>The same token hands this wall to whatever AI you already use — it speaks <a href="https://modelcontextprotocol.io">MCP</a>. Then you can say <em>make me a deck about the quarter, six stops</em> and it will, slide by slide, and publish it when you say so.</p>
+<p><code>claude mcp add --transport http storyboard ${esc(o.baseUrl)}/api/mcp --header "Authorization: Bearer ${esc(o.token || "YOUR_TOKEN")}"</code></p>
+<p class="note">In another client, the address is <code>${esc(o.baseUrl)}/api/mcp</code> and the token goes in an <code>Authorization: Bearer …</code> header. Your assistant does the thinking on your account; this wall never calls a model and holds no key of yours. It can write, rearrange and publish every deck you own, for a year, so treat it as the password it is — and if you stop trusting one, revoke it above.</p>
+<p class="note">Pictures are the one thing it cannot do: it writes the words, and you drop the photos on the wall yourself.</p>
 <footer class="foot"><a href="/">Your decks</a></footer>`,
     { user: o.user },
   );

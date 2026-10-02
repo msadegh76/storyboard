@@ -25,3 +25,6 @@ dist-ssr
 
 # the hosted server's database and pictures
 .data
+
+*.claude
+*.github

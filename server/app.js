@@ -26,6 +26,7 @@ import { ValidationError } from "./validate.js";
 import { renderShell } from "./shell.js";
 import { signinPage, homePage, messagePage, developersPage, landingAside } from "./pages.js";
 import { TEMPLATES, isExample, readExample, importPictures, publicReader } from "./examples.js";
+import { mcpRoute } from "./mcp.js";
 
 /** @typedef {import("../src/deck/types.ts").Deck} Deck */
 /** @typedef {import("../src/deck/types.ts").Slide} Slide */
@@ -126,7 +127,9 @@ export function createApp({ config, db, storage, mail, shell }) {
   app.use("*", async (c, next) => {
     const bearer = (c.req.header("authorization") || "").replace(/^Bearer\s+/i, "").trim();
     const cookie = getCookie(c, auth.cookie);
-    seen.set(c, { user: auth.userOf(bearer || cookie), viaToken: !!bearer, session: cookie });
+    const user = auth.userOf(bearer || cookie);
+    seen.set(c, { user, viaToken: !!bearer, session: cookie });
+    if (bearer && user) auth.touch(bearer);
     await next();
   });
 
@@ -136,6 +139,11 @@ export function createApp({ config, db, storage, mail, shell }) {
      the plugin's localhost check, grown up. */
   app.use("*", async (c, next) => {
     if (["GET", "HEAD", "OPTIONS"].includes(c.req.method) || seenOf(c).viaToken) return next();
+    /* MCP is a token door and nothing else — mcp.js turns away a cookie
+       session itself — so there is no browser to protect here, and a
+       client with no token must meet 401, the word it listens for,
+       rather than this. */
+    if (c.req.path === "/api/mcp") return next();
     const origin = c.req.header("origin") || "";
     const ok = config.dev ? LOCAL.test(origin) : origin === config.baseUrl;
     if (!ok) throw new HttpError(403, "that request did not come from this site");
@@ -251,11 +259,18 @@ export function createApp({ config, db, storage, mail, shell }) {
     return isForm(c) ? c.redirect("/signin") : c.json({ ok: true });
   });
 
+  app.post("/api/auth/token/:prefix/delete", (c) => {
+    const user = userOf(c);
+    if (!user) throw new HttpError(401, "sign in first");
+    auth.revoke(user.id, param(c, "prefix"));
+    return isForm(c) ? c.redirect("/developers") : c.json({ ok: true });
+  });
+
   app.post("/api/auth/token", (c) => {
     const user = userOf(c);
     if (!user) throw new HttpError(401, "sign in first");
     const token = auth.createToken(user.id);
-    if (isForm(c)) return c.html(developersPage({ user, token }));
+    if (isForm(c)) return c.html(developersPage({ user, token, baseUrl: config.baseUrl, tokens: auth.tokens(user.id) }));
     return c.json({ token });
   });
 
@@ -360,7 +375,7 @@ export function createApp({ config, db, storage, mail, shell }) {
   app.get("/developers", (c) => {
     const user = userOf(c);
     if (!user) return c.redirect("/signin?next=%2Fdevelopers");
-    return c.html(developersPage({ user }));
+    return c.html(developersPage({ user, baseUrl: config.baseUrl, tokens: auth.tokens(user.id) }));
   });
 
   /* ---- the wall, published and draft ---- */
@@ -659,6 +674,12 @@ export function createApp({ config, db, storage, mail, shell }) {
   });
 
   app.route("/api/decks", api);
+
+  /* ---- somebody else's AI, through the same routes (mcp.js) ---- */
+
+  app.post("/api/mcp", small, mcpRoute({ app, config, seenOf }));
+  for (const verb of /** @type {const} */ (["get", "delete"]))
+    app[verb]("/api/mcp", (c) => c.json({ error: "this speaks MCP over POST" }, 405));
 
   return app;
 }

@@ -307,6 +307,44 @@ every link to its log, which is right for a wall with one owner and
 wrong for one with any more. On Fly these are secrets:
 `fly secrets set SMTP_URL=… MAIL_FROM=…`.
 
+### Hand it to your own assistant
+
+A hosted wall speaks [MCP](https://modelcontextprotocol.io), so the AI
+you already pay for can drive it: make a deck, write the slides, move
+them about, publish. Make a token at `/developers` and point your
+client at `/api/mcp`:
+
+```bash
+claude mcp add --transport http storyboard https://wall.example/api/mcp --header "Authorization: Bearer $STORYBOARD_TOKEN"
+```
+
+In another client the address and the `Authorization: Bearer …` header
+go wherever it keeps them. Then:
+
+> *Make me a deck about the quarter — a painted heading, then the
+> three numbers that matter, then what we are doing next. Publish it.*
+
+The wall never calls a model and holds no key of yours: your assistant
+does the thinking, on your account, and this only answers the
+protocol. Which also means the token is worth what your decks are —
+it can write and publish every one you own — so give it to an
+assistant you trust with them, and make a fresh one if you stop
+trusting it.
+
+A token is a password: it can write, rearrange and publish every deck
+you own, for a year. `/developers` lists the ones you have out by
+their first characters — the same characters your client's
+configuration shows — with when each was made and last used, and a
+Revoke button beside it. Revoking stops that one at once, wherever it
+is, and leaves the others alone.
+
+There is no shorthand to learn. Your assistant already knows how to
+turn *"a heading and three bullets"* into a card; `deck_schema` tells
+it every field, and a write answers with whatever the validator
+dropped, so it can correct itself. Pictures are the one thing that
+cannot come through: it writes the words, you drop the photos on the
+wall.
+
 ### The three kinds of card
 
 |  | Written as | Behaves like |
