@@ -7,11 +7,14 @@
    picture paths are already relative, so the assets were the only
    thing standing between a build and a sub-path.
 
-   The plugin only exists while `vite` is running, and lets the editor
-   beside the wall write what it edits back into the deck file. See
-   tools/deck-editor.js. */
+   Two plugins exist only while `vite` is running. The first lets the
+   editor beside the wall write what it edits back into the deck file
+   (tools/deck-editor.js). The second is the hosted server, mounted
+   beside it at /home, /edit and /d, so the hosted wall can be worked
+   on with hot reload (server/vite.js). */
 
 import { deckEditor } from "./tools/deck-editor.js";
+import { hosted } from "./server/vite.js";
 
 export default {
   base: "./",
@@ -31,5 +34,5 @@ export default {
       },
     },
   },
-  plugins: [deckEditor()],
+  plugins: [deckEditor(), hosted()],
 };

@@ -35,19 +35,11 @@ type Draft = Partial<Promise_> & {
   sub?: string;
 };
 
-/* The values each field will take. Exported so the dev-mode editor
-   offers exactly what the checker accepts, rather than a second list
-   that quietly drifts from this one. */
-export const ATTACHES: readonly string[] = ["pin", "clip", "tape"];
-export const FONTS: readonly string[] = ["hand", "sans", "serif"];
-export const TYPES: readonly string[] = ["note", "photo", "mural"];
-export const DOODLES: readonly string[] = [
-  "none",
-  "heart",
-  "star",
-  "sprig",
-  "arrow",
-];
+/* The values each field will take. Kept in a leaf of their own so the
+   editor offers exactly what the checker accepts, and a server checks
+   exactly the same — see fields.ts. */
+import { ATTACHES, DOODLES, FONTS, TYPES } from "./fields.js";
+export { ATTACHES, DOODLES, FONTS, TYPES };
 
 /* Default width in wall units, by kind. A mural is writing across the
    plaster and wants room; a note is an index card. A photo is given a
@@ -167,7 +159,10 @@ function readCard(raw: unknown, where: string): Draft {
 ------------------------------------------------------------------ */
 function readSlide(raw: Slide, index: number): Draft[] {
   const where = `slide ${index + 1}`;
-  if (!raw || typeof raw !== "object")
+  /* A bare string is a card of plain text, and a card on its own is a
+     slide — so a string is a slide too, which is what types.ts says
+     and what the server keeps. readCard turns it into one. */
+  if (!raw || (typeof raw !== "object" && typeof raw !== "string"))
     throw new DeckError(where, `expected a slide object, got ${typeof raw}`);
 
   // `{ notes: [...] }` is several cards held in one stop; anything else

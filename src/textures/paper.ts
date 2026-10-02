@@ -6,7 +6,7 @@ import { SS } from "../config.js";
 import { rnd } from "../util.js";
 import type { Promise_ } from "../deck/types.js";
 import { PAPERS } from "./papers.js";
-import { ctx2d, speckle, tornPath, wrapText, drawDoodle, rowH } from "./draw.js";
+import { ctx2d, speckle, tornPath, wrapText, drawDoodle, rowH, isBlank } from "./draw.js";
 import type { Row, LineRow } from "./draw.js";
 
 export function makePaperTexture(p: Promise_) {
@@ -209,10 +209,16 @@ export function makePaperTexture(p: Promise_) {
     scale -= 0.04;
   }
 
+  // being written on: the layout is kept, the words are left to the hand over the card
+  const quiet = isBlank(p);
   let ty = H / 2 - blockH / 2 - H * 0.02;
   rows.forEach((r) => {
     if ("gap" in r) {
       ty += r.gap;
+      return;
+    }
+    if (quiet) {
+      ty += r.lh;
       return;
     }
     // a table row: the label ranged left, every figure ranged right

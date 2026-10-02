@@ -5,6 +5,7 @@
 
 import { THREE } from "../vendor.js";
 import type { Room } from "../rooms.js";
+import { wake } from "./wake.js";
 
 const found = document.getElementById("scene");
 if (!(found instanceof HTMLCanvasElement))
@@ -14,11 +15,21 @@ export const renderer = new THREE.WebGLRenderer({
   canvas,
   antialias: true,
   alpha: false,
+  /* The integrated GPU, where there is a choice. A wall is paper and
+     plaster; it does not need the one that turns the fan on. */
+  powerPreference: "low-power",
 });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+/* At most one and a half device pixels per CSS pixel: on a 2× screen
+   that is four ninths of the pixels of a full 2× frame, and handwriting
+   drawn into a texture stays sharp either way. */
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+/* Shadows are redrawn only on frames where something moved — the loop
+   says when. A card swaying a third of a degree does not move its
+   shadow enough to see. */
+renderer.shadowMap.autoUpdate = false;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.04;
@@ -62,6 +73,7 @@ export function fitCamera(rightInset = inset) {
   else camera.clearViewOffset();
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  wake();
 }
 
 /* Every intensity here carries a factor of 4.1 that has nothing to do
@@ -79,7 +91,7 @@ scene.add(hemi);
 const key = new THREE.DirectionalLight(0xfff1dc, 0.95 * LIGHT); // 0.95
 key.position.set(14, 18, 26);
 key.castShadow = true;
-key.shadow.mapSize.set(2048, 2048);
+key.shadow.mapSize.set(1024, 1024); // soft shadows over an 80-unit wall need no more
 key.shadow.camera.left = -40;
 key.shadow.camera.right = 40;
 key.shadow.camera.top = 26;

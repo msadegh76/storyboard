@@ -5,7 +5,7 @@ import { THREE } from "../vendor.js";
 import { currentRoom } from "../rooms.js";
 import { clamp, rnd } from "../util.js";
 import type { Promise_ } from "../deck/types.js";
-import { ctx2d, speckle, wrapText, rowH } from "./draw.js";
+import { ctx2d, speckle, wrapText, rowH, isBlank } from "./draw.js";
 import type { Ctx, Row, LineRow } from "./draw.js";
 
 /* A line once it knows where on the wall it lands. */
@@ -90,6 +90,7 @@ export function makeMuralTexture(p: Promise_) {
   /* One line, laid into whichever canvas is asked for: the wall
      itself, or the mask the ink hand works off. */
   const line = (g: Ctx, r: Laid, dx: number, dy: number) => {
+    if (isBlank(p)) return; // being written on: the plaster stays bare under the hand
     g.font = face(r.weight, r.size);
     g.textAlign = "center";
     g.textBaseline = "middle";

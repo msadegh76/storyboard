@@ -16,68 +16,19 @@ export default defineDeck({
   subtitle: "a tour of the wall, on the wall…",
   seed: "tour",
 
+  floor: "none",
+  light: "cool",
   slides: [
     /* ---------------------------------------------------------------
        Welcome
     --------------------------------------------------------------- */
-    {
-      mural: "Getting started",
-      sub: "Storyboard, explained on a wall",
-      paint: "#3b3527",
-      say: "This deck is the tour. Walk it with the arrow keys; every stop shows one thing the wall can do, with a picture of it.",
-    },
-
-    {
-      notes: [
-        {
-          image: "demo/onboarding/wall-overview.webp",
-          caption: "The wide shot: a whole deck, on one wall",
-          title: "The wall",
-          text: "Every slide of a deck, pinned to plaster and painted on it, seen all at once.",
-        },
-        {
-          title: "What you are looking at",
-          text: "A slide deck presented as a gallery wall in 3D. Cards are pinned to plaster, headings are painted straight onto it, and you walk it with the arrow keys.",
-          bullets: [
-            "Index cards for words, matted prints for pictures",
-            "Headings painted between them, chapter by chapter",
-            "One key light, dust in the air, a live 3D room — nothing is a screenshot",
-          ],
-          paper: "notebook",
-          attach: "clip",
-        },
-      ],
-    },
-
-    {
-      notes: [
-        {
-          image: "demo/onboarding/run-it.webp",
-          caption: "Two commands",
-        },
-        {
-          title: "Run it",
-          text: "Install once, then start the dev server and open the address it prints.",
-          bullets: [
-            "pnpm install",
-            "pnpm dev  →  http://localhost:5173",
-            "pnpm build writes dist/, a plain folder of static files",
-            "pnpm test checks the source editing behind the editor",
-          ],
-          foot: "Node and pnpm are all it needs.",
-          paper: "graph",
-          font: "sans",
-        },
-      ],
-    },
 
     /* ---------------------------------------------------------------
        Walking the wall
     --------------------------------------------------------------- */
     {
-      mural: "Walking the wall",
-      sub: "the keys, and the mouse",
-      paint: "#4a1c1a",
+      title: "Renamed in the file",
+      text: "Say something here.",
     },
 
     {
@@ -103,6 +54,13 @@ export default defineDeck({
     },
 
     {
+      mural: "Getting started",
+      sub: "Storyboard, explained on a wall",
+      paint: "#3b3527",
+      say: "This deck is the tour. Walk it with the arrow keys; every stop shows one thing the wall can do, with a picture of it.",
+    },
+
+    {
       notes: [
         {
           image: "demo/onboarding/stop-link.webp",
@@ -118,6 +76,28 @@ export default defineDeck({
           ],
           paper: "pastelGreen",
           doodle: "arrow",
+        },
+      ],
+    },
+
+    {
+      notes: [
+        {
+          image: "demo/onboarding/run-it.webp",
+          caption: "Two commandsaaaaaaa",
+        },
+        {
+          title: "Run it",
+          text: "Install once, then start the dev server and open the address it prints.",
+          bullets: [
+            "pnpm install",
+            "pnpm dev  →  http://localhost:5173",
+            "pnpm build writes dist/, a plain folder of static files",
+            "pnpm test checks the source editing behind the editor",
+          ],
+          foot: "Node and pnpm are all it needs.",
+          paper: "graph",
+          font: "sans",
         },
       ],
     },
@@ -172,6 +152,39 @@ export default defineDeck({
           say: "This is the window you will actually look at while talking.",
           paper: "notebook",
           attach: "tape",
+        },
+      ],
+    },
+
+    {
+      notes: [
+        {
+          title: "The wall",
+          text: "Every slide of a deck, pinned to plaster and painted on it, seen all at once.",
+          image: "demo/onboarding/wall-overview.webp",
+          caption: "The wide shot: a whole deck, on one wall",
+        },
+        {
+          title: "What you are looking at",
+          text: "A slide deck presented as a gallery wall in 3D. Cards are pinned to plaster, headings are painted straight onto it, and you walk it with the arrow keys.",
+          bullets: [
+            "Index cards for words, matted prints for pictures",
+            "Headings painted between them, chapter by chapter",
+            "One key light, dust in the air, a live 3D room — nothing is a screenshot",
+          ],
+          paper: "notebook",
+          attach: "clip",
+        },
+        {
+          title: "New card",
+          text: "Say something here.",
+          bullets: [
+            "dfl s ",
+            " dsf sd f",
+          ],
+          foot: "erwfwe",
+          table: {"rows":[["sotyooni 1","sotoon 2"],["valu1","value 2"]]},
+          say: "ine bkhoob",
         },
       ],
     },

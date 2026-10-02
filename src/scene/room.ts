@@ -6,6 +6,7 @@
    from that. Before `buildRoom` runs there is no wall to see. */
 
 import { THREE } from "../vendor.js";
+import { wake } from "./wake.js";
 import { ROOM_W, WALL_W, WALL_H, FLOOR_Y, WALL_TOP } from "../config.js";
 import { rnd } from "../util.js";
 import { makeWallTexture, makeFloorTexture } from "../textures/surfaces.js";
@@ -70,6 +71,7 @@ function takeDown() {
  * another room, it replaces itself.
  */
 export function buildRoom(room: Room) {
+  wake();
   takeDown();
   const add = (o: THREE.Object3D) => {
     scene.add(o);

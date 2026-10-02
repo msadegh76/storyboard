@@ -1,0 +1,30 @@
+# fly.toml app configuration file generated for presentation-wall on 2026-09-11T16:10:14+03:30
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'presentation-wall'
+primary_region = 'ams'
+swap_size_mb = 512
+
+[build]
+[env]
+  BASE_URL = 'https://presentation-wall.fly.dev'
+  SIGNUP = 'open'
+
+[[mounts]]
+  source = 'data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '512mb'
+  cpus = 1
+  memory_mb = 512

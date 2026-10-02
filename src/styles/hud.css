@@ -147,3 +147,145 @@ body.blacked #blackout {
   opacity: 1;
   transform: translate(-50%, 0);
 }
+
+/* On a host, the way back into a published deck — for its owner only,
+   so nobody else ever sees it. Sits where the stop counter does not. */
+#edit-pill {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  z-index: 60;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--panel);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(70, 52, 28, 0.14);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  opacity: 0.75;
+  transition: opacity 0.3s ease;
+}
+#edit-pill:hover,
+#edit-pill:focus-visible {
+  opacity: 1;
+}
+
+/* The front door: a few words over a template walked live, and one
+   thing to do. Top left on a desk; the bottom of a phone. */
+#landing {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 60;
+  max-width: 23rem;
+  padding: 16px 18px 14px;
+  border-radius: 14px;
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 32px rgba(70, 52, 28, 0.16);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+#landing .mark {
+  display: block;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+#landing .mark i {
+  font-style: normal;
+  color: var(--accent);
+}
+#landing p {
+  margin: 0 0 12px;
+  color: var(--ink-soft);
+}
+#landing .acts {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#landing a {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+#landing a.go {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+@media (max-width: 560px) {
+  #landing {
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    max-width: none;
+  }
+  #landing ~ #app-root #hint,
+  body:has(#landing) #hint {
+    display: none;
+  }
+}
+
+/* On a host, two arrows a viewer can see. Bottom right, out of the
+   hint's way, and under the stop counter's eye line. */
+#walk {
+  position: fixed;
+  right: 16px;
+  bottom: 24px;
+  z-index: 60;
+  display: flex;
+  gap: 6px;
+}
+#walk button,
+#walk a {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(70, 52, 28, 0.14);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+#walk button:hover,
+#walk button:focus-visible,
+#walk a:hover,
+#walk a:focus-visible {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+@media (max-width: 560px) {
+  #walk {
+    right: 12px;
+    bottom: 12px;
+  }
+  /* the landing's card takes the bottom of a phone; the arrows go up
+     under the counter rather than fight it */
+  body:has(#landing) #walk {
+    bottom: auto;
+    top: 40px;
+    right: 12px;
+  }
+}
